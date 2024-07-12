@@ -41,7 +41,7 @@ ast = MacawAssistant(
 # It handles the communication between the assistant and the connectors
 gateway = MessageGateway(ast)
 
-# For this example, we will use the Telegram connector
+# For this example, we will use the CLI connector
 conn = CliConnector(
     stream_mode=StreamMode.FULL
 )

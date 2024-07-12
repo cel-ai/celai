@@ -57,6 +57,10 @@ Don't use markdown formatting in your responses."
 prompt_template = PromptTemplate(prompt)
 
 # Create the assistant based on the Macaw Assistant 
+# NOTE: Make sure to provide api key in the environment variable `OPENAI_API_KEY`
+# add this line to your .env file: OPENAI_API_KEY=your-key
+# or uncomment the next line and replace `your-key` with your OpenAI API key
+# os.environ["OPENAI_API_KEY"] = "your-key.."
 ast = MacawAssistant(prompt=prompt_template)
 
 

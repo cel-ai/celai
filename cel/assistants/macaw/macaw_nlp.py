@@ -57,7 +57,7 @@ async def process_new_message(ctx: MacawNlpInferenceContext, message: str, on_fu
     llm = ctx.llm(
         **{**settings, **(ctx.llm_kwargs or {})}
     )
-    
+
     try:
         # Tolling
         functions = ctx.functions
@@ -193,8 +193,9 @@ async def blend_message(ctx: MacawNlpInferenceContext, message: str):
     settings["max_retries"] = ctx.settings.blend_max_retries
     
     # merge kwargs
-    llm = ChatOpenAI(
-        **settings
+    ctx.llm = ctx.llm or ChatOpenAI
+    llm = ctx.llm(
+        **{**settings, **(ctx.llm_kwargs or {})}
     )
 
 

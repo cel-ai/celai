@@ -20,6 +20,9 @@ class MacawAssistant(BaseAssistant):
     To perform these tasks, Macaw Assistant uses differents models and tools. You can
     configure the assistant with different settings and tools for each task.
     
+    If you use this assistant make sure to setup your LLM API key in the environment variable:
+        - OPENAI_API_KEY: The OpenAI API key for the assistant.
+    
     Tasks:
         - Blending: Blend a message with the current context.
         - Insights: Get insights from the current context.

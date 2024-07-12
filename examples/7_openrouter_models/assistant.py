@@ -60,6 +60,10 @@ prompt = """You are a banking assistant. Called Celia. You can help a user to se
 prompt_template = PromptTemplate(prompt)
 
 # Create the assistant based on the Macaw Assistant 
+# NOTE: Make sure to provide api key in the environment variable `OPENROUTER_API_KEY`
+# add this line to your .env file: OPENROUTER_API_KEY=your-key
+# or uncomment the next line and replace `your-key` with your OpenAI API key
+# os.environ["OPENROUTER_API_KEY"] = "your-key.."
 ast = MacawAssistant(
     prompt=prompt_template,
     llm = ChatOpenRouter,
