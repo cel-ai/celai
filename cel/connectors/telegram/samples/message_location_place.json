@@ -1,0 +1,34 @@
+{
+    "update_id": 794947896,
+    "message": {
+        "message_id": 746,
+        "from": {
+            "id": 1320141990,
+            "is_bot": false,
+            "first_name": "AMPer",
+            "username": "cowbe1985",
+            "language_code": "es"
+        },
+        "chat": {
+            "id": 1320141990,
+            "first_name": "AMPer",
+            "username": "cowbe1985",
+            "type": "private"
+        },
+        "date": 1717253147,
+        "location": {
+            "latitude": -34.384203,
+            "longitude": -58.682816
+        },
+        "venue": {
+            "location": {
+                "latitude": -34.384203,
+                "longitude": -58.682816
+            },
+            "title": "Parque Aereo Euca Tigre",
+            "address": "Italia 4950",
+            "foursquare_id": "51eb33a9498e53ddc41cc1c9",
+            "foursquare_type": "parks_outdoors/rockclimbing"
+        }
+    }
+}

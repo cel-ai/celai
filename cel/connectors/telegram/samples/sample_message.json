@@ -1,0 +1,21 @@
+{
+    "update_id":794947636,
+    "message":{
+       "message_id":149,
+       "from":{
+          "id":13201419,
+          "is_bot":false,
+          "first_name":"John",
+          "username":"doe1234",
+          "language_code":"en"
+       },
+       "chat":{
+          "id":13201419,
+          "first_name":"John",
+          "username":"doe1234",
+          "type":"private"
+       },
+       "date":1716850049,
+       "text":"Hola"
+    }
+ }

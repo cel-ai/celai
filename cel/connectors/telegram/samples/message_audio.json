@@ -1,0 +1,27 @@
+{
+    "update_id": 794947863,
+    "message": {
+        "message_id": 647,
+        "from": {
+            "id": 1320141,
+            "is_bot": false,
+            "first_name": "John",
+            "username": "foobar",
+            "language_code": "en"
+        },
+        "chat": {
+            "id": 1320141,
+            "first_name": "John",
+            "username": "foobar",
+            "type": "private"
+        },
+        "date": 1717182488,
+        "voice": {
+            "duration": 2,
+            "mime_type": "audio/ogg",
+            "file_id": "AwACAgEAAxkBAAICh2ZaIBgQeMjTu4_DOlmioRlXy6PGAAKeBQACWnjQRhHL8mHBhl-FNQQ",
+            "file_unique_id": "AgADngUAAlp40EY",
+            "file_size": 8537
+        }
+    }
+}

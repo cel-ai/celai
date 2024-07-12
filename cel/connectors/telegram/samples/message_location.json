@@ -1,0 +1,24 @@
+{
+    "update_id": 794947887,
+    "message": {
+        "message_id": 720,
+        "from": {
+            "id": 132014,
+            "is_bot": false,
+            "first_name": "John",
+            "username": "foobar",
+            "language_code": "es"
+        },
+        "chat": {
+            "id": 132014,
+            "first_name": "John",
+            "username": "foobar",
+            "type": "private"
+        },
+        "date": 1717246030,
+        "location": {
+            "latitude": -34.391462,
+            "longitude": -58.69314
+        }
+    }
+}

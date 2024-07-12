@@ -1,0 +1,54 @@
+site_name: Cel.ai Documentation
+site_url: https://mydomain.org/mysite
+
+# nav:
+#   - Introduction: index.md
+#   - Getting Started: getting_started.md
+#   - Connectors: ./connectors/
+
+# theme:
+theme:
+  features:
+    # - navigation.tabs
+    - navigation.sections
+    - toc.integrate
+    - navigation.top
+    - search.suggest
+    - content.tabs.link
+    - content.code.annotation
+    # - content.code.highlight
+    - content.code.copy
+  language: en
+
+  name: material
+  logo: assets/celia_logo.png
+  favicon: assets/celia_logo.png
+  palette: 
+    # Palette toggle for light mode
+    - media: "(prefers-color-scheme: light)" 
+      scheme: slate
+      toggle:
+        icon: material/brightness-7 
+        name: Switch to dark mode
+
+    # Palette toggle for dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: default
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+
+markdown_extensions:
+  - pymdownx.highlight:
+      use_pygments: true
+  - pymdownx.superfences
+
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com
+    - icon: fontawesome/brands/twitter
+      link: https://twitter.com
+
+copyright: Copyright © 2024 Cel.ai - All Rights Reserved 

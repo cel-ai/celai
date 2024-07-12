@@ -1,0 +1,1 @@
+BASE_URL = "https://graph.facebook.com/v18.0"

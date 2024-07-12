@@ -1,0 +1,44 @@
+{
+    "update_id": 169216960,
+    "message": {
+        "message_id": 153,
+        "from": {
+            "id": 13201419,
+            "is_bot": false,
+            "first_name": "John",
+            "last_name": "Doe",
+            "language_code": "en"
+        },
+        "chat": {
+            "id": 13201419,
+            "first_name": "John",
+            "last_name": "Doe",
+            "type": "private"
+        },
+        "date": 1687752535,
+        "photo": [
+            {
+                "file_id": "AgACAgEAAxkBAAOZZJkPV95t1HVuywGHf8jzChMnjrQAAjqrMRvbRtBE0nrkCljiLKcBAAMCAANzAAMvBA",
+                "file_unique_id": "AQADOqsxG9tG0ER4",
+                "file_size": 1562,
+                "width": 90,
+                "height": 90
+            },
+            {
+                "file_id": "AgACAgEAAxkBAAOZZJkPV95t1HVuywGHf8jzChMnjrQAAjqrMRvbRtBE0nrkCljiLKcBAAMCAANtAAMvBA",
+                "file_unique_id": "AQADOqsxG9tG0ERy",
+                "file_size": 14487,
+                "width": 320,
+                "height": 320
+            },
+            {
+                "file_id": "AgACAgEAAxkBAAOZZJkPV95t1HVuywGHf8jzChMnjrQAAjqrMRvbRtBE0nrkCljiLKcBAAMCAAN4AAMvBA",
+                "file_unique_id": "AQADOqsxG9tG0ER9",
+                "file_size": 21976,
+                "width": 512,
+                "height": 512
+            }
+        ],
+        "caption": "Esta es una foto😍"
+    }
+}

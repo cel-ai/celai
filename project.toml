@@ -1,0 +1,51 @@
+[project]
+name = "prompter"
+version = "0.0.1"
+authors = [
+  { name="Alejandro Pirola", email="alejamp@gmail.com" },
+]
+description = "A python framework for devoloping AI assistants."
+readme = "README.md"
+requires-python = ">=3.11"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+dependencies = [
+  'redis>=4.6.0',
+  'numpy',
+  'pytest>=8.2.0',
+  'pytest-asyncio>=0.23.7',
+  'langchain==0.2.0',
+  'loguru>=0.7.2',
+  'chardet>=5.2.0',
+  'marko',
+  'chromadb>=0.5.0',
+  'python-dotenv',
+  'openai>=1.30.1',
+  'diskcache>=5.6.3',
+  'openai-responses>=0.3.2',
+  'halo>=0.0.31',
+  'aioredis>=2.0.1',
+  'fakeredis>=2.23.2',
+  'pybars3>=0.9.7',
+  'BeautifulSoup4>=4.12.3',
+  'lxml>=5.2.2',
+  'shortuuid>=1.0.13',
+  'dictdiffer>=0.9.0',
+  'pysbd>=0.3.4',
+  'deepgram-sdk>=3.2.7',
+  'geopy>=2.4.1'
+]
+
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages]
+find = {}  # Scan the project directory with the default parameters
+
+[project.urls]
+"Homepage" = "https://github.com/alejamp/lola-py-sdk"
+"Bug Tracker" = "https://github.com/alejamp/lola-py-sdk/issues"

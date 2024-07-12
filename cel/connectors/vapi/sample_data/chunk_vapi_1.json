@@ -1,0 +1,21 @@
+{
+    "id": "chatcmpl-9gRMw6KP9kwR5yoieEccx0qwz5vKz",
+    "choices": [
+        {
+            "delta": {
+                "content": "",
+                "function_call": null,
+                "role": "assistant",
+                "tool_calls": null
+            },
+            "finish_reason": null,
+            "index": 0,
+            "logprobs": null
+        }
+    ],
+    "created": 1719902010,
+    "model": "gpt-3.5-turbo-0125",
+    "object": "chat.completion.chunk",
+    "system_fingerprint": null,
+    "usage": null
+}

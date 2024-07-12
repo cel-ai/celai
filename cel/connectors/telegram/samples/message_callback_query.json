@@ -1,0 +1,50 @@
+{
+    "update_id": 169216979,
+    "callback_query": {
+        "id": "5669966673157250073",
+        "from": {
+            "id": 13201419,
+            "is_bot": false,
+            "first_name": "John",
+            "last_name": "Doe",
+            "language_code": "en"
+        },
+        "message": {
+            "message_id": 193,
+            "from": {
+                "id": 6180395732,
+                "is_bot": true,
+                "first_name": "lola_chatwoot_test",
+                "username": "lola_chatwoot_test_bot"
+            },
+            "chat": {
+                "id": 13201419,
+                "first_name": "John",
+                "last_name": "Doe",
+                "type": "private"
+            },
+            "date": 1687773892,
+            "text": "Select an option",
+            "reply_markup": {
+                "inline_keyboard": [
+                    [
+                        {
+                            "text": "Option 1",
+                            "callback_data": "option1"
+                        },
+                        {
+                            "text": "Option 2",
+                            "callback_data": "option2"
+                        },
+                        {
+                            "text": "Option 3",
+                            "callback_data": "option3"
+                        }
+                    ]
+                ]
+            }
+        },
+        "chat_instance": "-4004316133490442129",
+        "data": "option3"
+    }
+}
