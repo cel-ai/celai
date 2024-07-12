@@ -1,56 +1,53 @@
-# Create Python .venv
+<!-- A centered logo of celia -->
+<p align="center">
+  <img src="cel/assets/celia_logo.png" width="250" />
+</p>
 
-```bash
-python3.11 -m venv .venv
-```
-
-```bash
-source .venv/bin/activate
-
-# install requirements
-pip install -r requirements.txt
-```
+# Introduction
 
 
-# TODO:
-- Split packages: https://packaging.python.org/en/latest/guides/packaging-namespace-packages/#legacy-namespace-packages
+Cel.ai is a powerful Python framework designed to accelerate the development of omnichannel virtual assistants. Whether you need to integrate with platforms like WhatsApp, Telegram, or VoIP services such as VAPI.com, Cel.ai provides the tools and flexibility to get your assistant up and running quickly.
 
-
-aidmepy
-
-
-
-# Log format
-
-## Easy to read and use with vscode:
-```python
-from loguru import logger as log
-
-log.remove()
-log.add(sys.stdout, format="<green>{time:YYYY-MM-DD HH:mm:ss.SSS}</green> | "
-    "<level>{level: <8}</level> | "
-    "<cyan>{file}</cyan>:<cyan>{line}</cyan> - <level>{message}</level>")
-```
-
-## More compact
-
-without time stamp:
-```python
-from loguru import logger as log
-
-log.remove()
-log.add(sys.stdout, format="<level>{level: <8}</level> | "
-    "<cyan>{file}</cyan>:<cyan>{line}</cyan> - <level>{message}</level>")
-```
-
-# Mkdocs 
 
 ## Install
-```bash
-pip install mkdocs-material
-```
 
-## Run
+pip install from github:
 ```bash
-mkdocs serve
+pip install git+https://github.com/cel-ai/celai
+```
+## Getting Started
+
+Create a new Python file, `assistant.py`, and open it in your favorite text editor. Add the following code to set up a basic assistant:
+
+
+```python
+# Import Cel.ai modules
+from cel.connectors.cli.cli_connector import CliConnector
+from cel.gateway.message_gateway import MessageGateway, StreamMode
+from cel.message_enhancers.smart_message_enhancer_openai import SmartMessageEnhancerOpenAI
+from cel.assistants.macaw.macaw_assistant import MacawAssistant
+from cel.prompt.prompt_template import PromptTemplate
+
+# Setup prompt
+prompt = """You are an AI assistant. Called Celia. You can help a user to buy Bitcoins."""
+prompt_template = PromptTemplate(prompt)
+
+# Create the assistant based on the Macaw Assistant 
+ast = MacawAssistant(
+    prompt=prompt_template
+)
+
+# Create the Message Gateway - This component is the core of the assistant
+# It handles the communication between the assistant and the connectors
+gateway = MessageGateway(ast)
+
+# For this example, we will use the Telegram connector
+conn = CliConnector(
+    stream_mode=StreamMode.FULL
+)
+# Register the connector with the gateway
+gateway.register_connector(conn)
+
+# Then start the gateway and begin processing messages
+gateway.run()
 ```

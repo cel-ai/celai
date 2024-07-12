@@ -14,7 +14,7 @@ Before you begin, ensure you have the following installed:
 To install Cel.ai, you can use pip. Run the following command in your terminal:
 
 ```bash
-pip install celai
+pip install git+https://github.com/cel-ai/celai
 ```
 
 ## Creating Your First Assistant
@@ -44,7 +44,7 @@ source venv/bin/activate  # On Windows use `venv\Scripts\activate`
 With your virtual environment activated, install Cel.ai:
 
 ```bash
-pip install celai
+pip install git+https://github.com/cel-ai/celai
 ```
 
 ### Step 4: Create Your Assistant Script
