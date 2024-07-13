@@ -34,6 +34,7 @@ langchain = ">=0.2.0"
 langchain-chroma = ">=0.1.1"                        
 langchain-community = ">=0.2.1"
 langchain-openai = ">=0.1.8"
+aiogram = ">=3.6.0"
 
 [tool.poetry.group.dev.dependencies]
 pytest = ">=8.2.0"
