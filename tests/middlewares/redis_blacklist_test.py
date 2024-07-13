@@ -39,9 +39,9 @@ async def test_in_mem_black_list_middleware(redis_client):
 
     
 @pytest.mark.asyncio
-async def test_in_mem_black_list_middleware_block():
+async def test_in_mem_black_list_middleware_block(redis_client):
     # Create an instance of the class
-    middleware = RedisBlackListMiddleware()
+    middleware = RedisBlackListMiddleware(redis=redis_client)
 
     # Test the __call__ method
     chat_id = shortuuid.uuid()

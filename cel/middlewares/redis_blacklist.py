@@ -14,7 +14,7 @@ class RedisBlackListMiddleware:
     """Middleware to block users based on a blacklist. The blacklist is stored in a Redis database."""
     
     def __init__(self, redis: str | Redis = None, key_prefix: str = "blacklistmw"):
-        self.client = redis if isinstance(redis, Redis) else Redis.from_url(redis or 'redis://localhost:6379/0')
+        self.client = Redis.from_url(redis or 'redis://localhost:6379/0') if isinstance(redis, str) else redis
         self.black_list_key = key_prefix
         
     async def __call__(self, message: Message, connector: BaseConnector, assistant: BaseAssistant):
