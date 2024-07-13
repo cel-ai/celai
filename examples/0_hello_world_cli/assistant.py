@@ -76,5 +76,5 @@ conn = CliConnector(
 gateway.register_connector(conn)
 
 # Then start the gateway and begin processing messages
-gateway.run()
+gateway.run() 
 

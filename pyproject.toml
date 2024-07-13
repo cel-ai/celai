@@ -2,7 +2,7 @@
 name = "celai"
 version = "0.1.0"
 description = ""
-authors = ["Alejandro Pirola <alejamp@gmail.com>"]
+authors = ["Alex Martin <alejamp@gmail.com>"]
 readme = "README.md"
 
 [tool.poetry.dependencies]
