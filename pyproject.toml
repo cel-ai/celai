@@ -30,6 +30,10 @@ dictdiffer = ">=0.9.0"
 pysbd = ">=0.3.4"
 deepgram-sdk = ">=3.2.7"
 geopy = ">=2.4.1"
+langchain = ">=0.2.0"
+langchain-chroma = ">=0.1.1"                        
+langchain-community = ">=0.2.1"
+langchain-openai = ">=0.1.8"
 
 [tool.poetry.group.dev.dependencies]
 pytest = ">=8.2.0"
