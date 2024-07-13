@@ -1,7 +1,6 @@
 import pytest
 from cel.rag.stores.chroma.chroma_store import ChromaStore
 from cel.rag.text2vec.cached_openai import CachedOpenAIEmbedding
-import openai_responses
 import dotenv
 
 dotenv.load_dotenv()
