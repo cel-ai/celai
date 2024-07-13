@@ -31,6 +31,7 @@ jobs:
         if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
         # install poetry
         curl -sSL https://install.python-poetry.org | python3 -
+        poetry config virtualenvs.create false
         poetry install --no-root
     - name: Lint with flake8
       run: |
