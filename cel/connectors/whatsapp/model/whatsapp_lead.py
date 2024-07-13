@@ -9,7 +9,6 @@ class WhatsappLead(ConversationLead):
         super().__init__(connector_name=connector_name or 'whatsapp', **kwargs)
         self.phone: str = filter_phone_number(str(phone))
 
-
     def get_session_id(self):
         return f"{self.connector_name}:{self.phone}"  
 
@@ -27,7 +26,6 @@ class WhatsappLead(ConversationLead):
 
     def __str__(self):
         return f"WhatsappLead: {self.phone}"
-    
     
     @classmethod
     def from_whatsapp_message(cls, data: dict, **kwargs):

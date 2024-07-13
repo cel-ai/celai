@@ -22,7 +22,7 @@ def upload_media(media: str, token: str, phone_number_id: str) -> Union[Dict[Any
     assert token is not None, "Token not provided"
     assert phone_number_id is not None, "Phone number id not provided"
     assert media is not None, "Media not provided"
-    
+
     form_data = {
         "file": (
             media,
@@ -105,7 +105,7 @@ def download_media(media_url: str,
                    mime_type: str, 
                    token: str, 
                    file_path: str = "temp"
-                ) -> Union[str, None]:
+                  ) -> Union[str, None]:
     """
     Download media from media url obtained either by manually uploading media or received media
 
@@ -116,7 +116,6 @@ def download_media(media_url: str,
                         Do not include the file extension. It will be added automatically.
         token[str]: The Meta Access Token
         
-
     Returns:
         str: Media url
     """

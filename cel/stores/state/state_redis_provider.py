@@ -1,10 +1,7 @@
 import json
 from redis import Redis
-from cel.gateway.model.conversation_lead import ConversationLead
 from loguru import logger as log
 from cel.stores.state.base_state_provider import BaseChatStateProvider
-
-
 
 class RedisChatStateProvider(BaseChatStateProvider):
 

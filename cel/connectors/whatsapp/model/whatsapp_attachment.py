@@ -1,8 +1,8 @@
 from aiogram import Bot
 from loguru import logger as log
 from cel.connectors.whatsapp.model.media_utils import query_media_url
-from cel.gateway.model.attachment import FileAttachment,\
-                                                LocationAttachment,\
+from cel.gateway.model.attachment import FileAttachment, \
+                                                LocationAttachment, \
                                                 MessageAttachmentType
 
 # class TelegramLocationAttachment(LocationAttachment):
@@ -54,19 +54,19 @@ sample_data = {
 
 
 class WhatsappAttachment(FileAttachment):
-    
-    def __init__(self, 
+
+    def __init__(self,  
                  type: MessageAttachmentType = None,
-                 title: str = None, 
-                 description: str = None, 
-                 mimeType: str = None, 
-                 metadata: any = None, 
-                 fileSize: int = None, 
-                 width: int = None, 
+                 title: str = None,
+                 description: str = None,
+                 mimeType: str = None,
+                 metadata: any = None,
+                 fileSize: int = None,
+                 width: int = None,
                  height: int = None,
                  file_url: str = None,
-                 caption: str = None
-                ):
+                 caption: str = None):
+        
         super().__init__(title, description, mimeType=mimeType, metadata=metadata, type=type)
         self.fileSize: int = fileSize
         self.width: int = width

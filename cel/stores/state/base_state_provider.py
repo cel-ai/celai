@@ -1,5 +1,4 @@
 from abc import ABC, abstractmethod
-from cel.gateway.model.conversation_lead import ConversationLead
 
 
 class BaseChatStateProvider(ABC):
