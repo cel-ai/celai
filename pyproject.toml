@@ -54,3 +54,7 @@ pytest-asyncio = ">=0.23.7"
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
 
+[tool.pytest.ini_options]
+pythonpath = [
+  "."
+]
