@@ -50,5 +50,5 @@ jobs:
         # set "PYTHONPATH" to include the current directory
         export PYTHONPATH=.
         pytest
-    - name: Publish package
-      uses: pypa/gh-action-pypi-publish@release/v1
+    # - name: Publish package
+    #   uses: pypa/gh-action-pypi-publish@release/v1
