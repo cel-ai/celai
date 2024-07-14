@@ -12,7 +12,11 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    environment: dev
+    environment: release
+    permissions:
+      # IMPORTANT: this permission is mandatory for trusted publishing
+      id-token: write
+
     strategy:
       fail-fast: false
       matrix:
@@ -46,3 +50,5 @@ jobs:
         # set "PYTHONPATH" to include the current directory
         export PYTHONPATH=.
         pytest
+    - name: Publish package
+      uses: pypa/gh-action-pypi-publish@release/v1

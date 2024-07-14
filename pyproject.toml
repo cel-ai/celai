@@ -4,6 +4,16 @@ version = "0.1.0"
 description = ""
 authors = ["Alex Martin <alejamp@gmail.com>"]
 readme = "README.md"
+requires-python = ">=3.11"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+
+[tool.petry.urls]
+Homepage = "https://github.com/cel-ai/celai"
+Issues = "https://github.com/cel-ai/celai/issues"
 
 [tool.poetry.dependencies]
 #Runtime
@@ -43,3 +53,4 @@ pytest-asyncio = ">=0.23.7"
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
+

@@ -29,7 +29,7 @@ class RedisBlackListMiddleware:
             return False
         else:
             return True
-    
+
     def add_to_black_list(self, id: str, reason: str = None):
         entry = BlackListEntry(reason=reason, date=int(time.time()))
         self.client.hset(self.black_list_key, id, json.dumps(asdict(entry)))
