@@ -10,7 +10,7 @@ classifiers = [
     "Operating System :: OS Independent",
 ]
 
-[tool.petry.urls]
+[tool.poetry.urls]
 Homepage = "https://github.com/cel-ai/celai"
 Issues = "https://github.com/cel-ai/celai/issues"
 
