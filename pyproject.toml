@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "cel"
+name = "celai"
 version = "0.1.0"
 description = ""
 authors = ["Alex Martin <alejamp@gmail.com>"]
@@ -8,6 +8,9 @@ classifiers = [
     "Programming Language :: Python :: 3",
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
+]
+packages = [
+    { include = "cel" }
 ]
 
 [tool.poetry.urls]
