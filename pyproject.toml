@@ -9,8 +9,11 @@ classifiers = [
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
 ]
+packages = [
+    { include = "cel" }
+]
 
-[tool.petry.urls]
+[tool.poetry.urls]
 Homepage = "https://github.com/cel-ai/celai"
 Issues = "https://github.com/cel-ai/celai/issues"
 
