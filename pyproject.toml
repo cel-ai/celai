@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "celai"
+name = "cel"
 version = "0.1.0"
 description = ""
 authors = ["Alex Martin <alejamp@gmail.com>"]
