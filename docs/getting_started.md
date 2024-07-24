@@ -14,7 +14,7 @@ Before you begin, ensure you have the following installed:
 To install Cel.ai, you can use pip. Run the following command in your terminal:
 
 ```bash
-pip install git+https://github.com/cel-ai/celai
+pip install celai
 ```
 
 ## Creating Your First Assistant
@@ -44,11 +44,18 @@ source venv/bin/activate  # On Windows use `venv\Scripts\activate`
 With your virtual environment activated, install Cel.ai:
 
 ```bash
-pip install git+https://github.com/cel-ai/celai
+pip install celai
 ```
 
 ### Step 4: Create Your Assistant Script
 
+If you are using Macaw Assistant, you need to add a environment variable `OPENAI_API_KEY` with your OpenAI API key.
+
+```bash
+export OPENAI_API_KEY="your_openai_api_key"
+```
+
+For simplicity, we will create a basic assistant that uses the CLI connector to interact with the assistant via the command line interface.
 Create a new Python file, `assistant.py`, and open it in your favorite text editor. Add the following code to set up a basic assistant:
 
 ```python title="main.py"

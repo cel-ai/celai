@@ -42,7 +42,9 @@ markdown_extensions:
   - pymdownx.highlight:
       use_pygments: true
   - pymdownx.superfences
-
+  - footnotes
+  - admonition
+  - pymdownx.details  
 
 extra:
   social:

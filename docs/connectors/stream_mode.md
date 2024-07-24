@@ -2,6 +2,10 @@
 
 Cel.ai supports different stream modes to define how the client, through the connector, receives responses from the AI assistant. These modes are designed to optimize the user experience based on the specific requirements of the platform and the nature of the interaction. Below are the available stream modes:
 
+<p align="center">
+  <img src="../../assets/celia_stream_modes1.png" width="80%" />
+</p>
+
 ## Stream Modes
 
 ### 1. DIRECT
