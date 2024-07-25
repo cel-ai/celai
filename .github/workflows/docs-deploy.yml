@@ -7,9 +7,9 @@ name: Docs Deploy
 
 on:
   push:
-    branches: [ "docs" ]
+    branches: [ "main", "docs" ]
   pull_request:
-    branches: [ "docs" ]
+    branches: [ "main", "docs" ]
 
 jobs:
   build:
