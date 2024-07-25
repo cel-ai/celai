@@ -13,20 +13,19 @@ Cel.ai is a powerful Python framework designed to accelerate the development of 
 Explore the documentation to learn more about how Cel.ai can help you build powerful, omnichannel virtual assistants with ease.
 Feel free to customize this introduction to better fit your specific needs and use cases.
 
-## Principles
+## Key Features
 
 - **Modular Design**: Designed with a modular architecture that allows you to easily extend and customize its functionality.
-- **Simplicity**: Simple and intuitive API for building virtual assistants.
 - **Asynchronous**: Built on top of the FastAPI framework, Cel.ai is designed to be asynchronous and scalable.
+- **Streaming**: Supports different stream modes to optimize the user experience based on the specific requirements of the platform and the nature of the interaction. 
+- **Runs on Script**: This system is designed with the principle that it can run a minimal QA/FAQ + RAG assistant in a single script without requiring databases, external services, or complex configurations.
 - **Open Source**: Cel.ai is open source and actively maintained by the community.
-- **Low Code**: Build powerful virtual assistants with minimal code.  
-- **Script-Only**: This system is designed with the principle that it can run a minimal QA/FAQ assistant version in a single script without requiring databases, caches, or special services.
 
 
 ## Overview
 
 <p align="center">
-  <img src="assets/celia_overview1.png" width="100%" />
+  <img src="assets/celia_overview1.png" width="95%" />
 </p>
 
 

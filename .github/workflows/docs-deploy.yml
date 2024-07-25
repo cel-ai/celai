@@ -7,17 +7,17 @@ name: Docs Deploy
 
 on:
   push:
-    branches: [ "docs" ]
+    branches: [ "main", "docs" ]
   pull_request:
-    branches: [ "docs" ]
+    branches: [ "main", "docs" ]
 
 jobs:
   build:
     runs-on: ubuntu-latest
     environment: release
     permissions:
-      # IMPORTANT: this permission is mandatory for trusted publishing
-      id-token: write
+      # IMPORTANT: this permission is mandatory 
+      contents: write
 
     strategy:
       fail-fast: false

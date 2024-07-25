@@ -25,18 +25,19 @@ theme:
   favicon: assets/celia_logo.png
   palette: 
     # Palette toggle for light mode
-    - media: "(prefers-color-scheme: light)" 
+    - media: "(prefers-color-scheme: dark)" 
       scheme: slate
-      toggle:
-        icon: material/brightness-7 
-        name: Switch to dark mode
+    #   scheme: slate
+    #   toggle:
+    #     icon: material/brightness-7 
+    #     name: Switch to dark mode
 
-    # Palette toggle for dark mode
-    - media: "(prefers-color-scheme: dark)"
-      scheme: default
-      toggle:
-        icon: material/brightness-4
-        name: Switch to light mode
+    # # Palette toggle for dark mode
+    # - media: "(prefers-color-scheme: dark)"
+    #   scheme: default
+    #   toggle:
+    #     icon: material/brightness-4
+    #     name: Switch to light mode
 
 markdown_extensions:
   - pymdownx.highlight:
@@ -49,8 +50,8 @@ markdown_extensions:
 extra:
   social:
     - icon: fontawesome/brands/github
-      link: https://github.com
-    - icon: fontawesome/brands/twitter
-      link: https://twitter.com
+      link: https://github.com/cel-ai/celai
+    # - icon: fontawesome/brands/twitter
+    #   link: https://twitter.com
 
 copyright: Copyright © 2024 Cel.ai - All Rights Reserved 
