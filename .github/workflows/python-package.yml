@@ -52,3 +52,20 @@ jobs:
         poetry build
     - name: Publish package
       uses: pypa/gh-action-pypi-publish@release/v1.9
+
+    - name: Configure Git Credentials
+      run: |
+        git config user.name github-actions[bot]
+        git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+
+    - name: Install MkDocs
+      run: pip install mkdocs-material 
+
+    - name: Build and Deploy to GitHub Pages
+      run: mkdocs gh-deploy --force
+
+    # - name: Deploy to GitHub Pages
+    #   uses: peaceiris/actions-gh-pages@v3
+    #   with:
+    #     github_token: ${{ secrets.GITHUB_TOKEN }}
+    #     publish_dir: ./site
