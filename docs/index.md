@@ -26,7 +26,7 @@ Feel free to customize this introduction to better fit your specific needs and u
 ## Overview
 
 <p align="center">
-  <img src="assets/celia_overview1.png" width="100%" />
+  <img src="assets/celia_overview1.png" width="95%" />
 </p>
 
 
