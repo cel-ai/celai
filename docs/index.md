@@ -14,7 +14,7 @@ Explore the documentation to learn more about how Cel.ai can help you build powe
 Feel free to customize this introduction to better fit your specific needs and use cases.
 
 ## Key Features
-
+ 
 - **Modular Design**: Designed with a modular architecture that allows you to easily extend and customize its functionality.
 - **Asynchronous**: Built on top of the FastAPI framework, Cel.ai is designed to be asynchronous and scalable.
 - **Streaming**: Supports different stream modes to optimize the user experience based on the specific requirements of the platform and the nature of the interaction. 
