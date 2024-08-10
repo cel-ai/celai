@@ -8,6 +8,7 @@
 
 Cel.ai is a powerful Python framework designed to accelerate the development of omnichannel virtual assistants. Whether you need to integrate with platforms like WhatsApp, Telegram, or VoIP services such as VAPI.com, Cel.ai provides the tools and flexibility to get your assistant up and running quickly.
 
+[Documentation](https://cel-ai.github.io/celai/)
 
 ## Install
 
