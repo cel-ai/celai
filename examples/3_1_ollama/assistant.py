@@ -1,0 +1,154 @@
+"""
+Cryptocurrency price with Ollama + llama3-groq-tool-use
+-------------------------------------
+
+This is a simple example of an AI Assistant implemented using the Cel.ai framework.
+It serves as a basic demonstration of how to get started with Cel.ai for creating intelligent assistants.
+
+Framework: Cel.ai
+License: MIT License
+
+This script is part of the Cel.ai example series and is intended for educational purposes.
+
+Usage:
+------
+Configure the required environment variables in a .env file in the root directory of the project.
+The required environment variables are:
+- WEBHOOK_URL: The webhook URL for the assistant, you can use ngrok to create a public URL for your local server.
+- TELEGRAM_TOKEN: The Telegram bot token for the assistant. You can get this from the BotFather on Telegram.
+
+Then run this script to see a basic AI assistant in action.
+
+Note:
+-----
+Please ensure you have the Cel.ai framework installed in your Python environment prior to running this script.
+"""
+# LOAD ENV VARIABLES
+import os
+from loguru import logger as log
+# Load .env variables
+from dotenv import load_dotenv
+load_dotenv(override=True)
+
+
+# REMOVE THIS BLOCK IF YOU ARE USING THIS SCRIPT AS A TEMPLATE
+# -------------------------------------------------------------
+import sys
+from pathlib import Path
+# Add parent directory to path
+path = Path(os.path.dirname(os.path.abspath(__file__)))
+sys.path.append(str(path.parents[1]))
+# -------------------------------------------------------------
+
+# Import Cel.ai modules
+from cel.connectors.telegram import TelegramConnector
+from cel.gateway.message_gateway import MessageGateway, StreamMode
+from cel.message_enhancers.smart_message_enhancer_openai import SmartMessageEnhancerOpenAI
+from cel.assistants.macaw.macaw_assistant import MacawAssistant
+from cel.prompt.prompt_template import PromptTemplate
+from cel.rag.providers.markdown_rag import MarkdownRAG
+from cel.assistants.function_context import FunctionContext
+from cel.assistants.function_response import RequestMode
+from cel.assistants.common import Param
+from cel.assistants.macaw.macaw_settings import MacawSettings
+
+
+
+from langchain_ollama import ChatOllama
+
+
+
+# Setup prompt
+# prompt = """You a are a friendly AI assistant Celai.  
+# You must help with crypto questions. 
+# Response in customer's language.
+# Short answers are must."""
+
+prompt = """Eres un asistente de inteligencia artificial amigable, Celai.
+Debes ayudar con las preguntas sobre criptomonedas.
+Responde en el idioma del cliente.
+Las respuestas breves son obligatorias."""
+
+prompt_template = PromptTemplate(prompt)
+
+# Create the assistant based on the Macaw Assistant 
+# NOTE: Make sure to provide api key in the environment variable `OPENAI_API_KEY`
+# add this line to your .env file: OPENAI_API_KEY=your-key
+# or uncomment the next line and replace `your-key` with your OpenAI API key
+# os.environ["OPENAI_API_KEY"] = "your-key.." 
+llm = ChatOllama(
+    model="llama3-groq-tool-use",
+    temperature=0,
+)
+agent_settings = MacawSettings(
+    core_model='llama3-groq-tool-use', 
+    blend_model='llama3-groq-tool-use', 
+    insights_model='llama3-groq-tool-use'
+)
+
+ast = MacawAssistant(
+    prompt=prompt_template, 
+    llm=ChatOllama,
+    settings=agent_settings
+)
+
+
+# Configure the RAG model using the MarkdownRAG provider
+# by default it uses the CachedOpenAIEmbedding for text2vec
+# and ChromaStore for storing the vectors
+mdm = MarkdownRAG("demo", file_path="examples/3_1_ollama/qa.md", split_table_rows=True)
+# Load from the markdown file, then slice the content, and store it.
+mdm.load()
+# Register the RAG model with the assistant
+ast.set_rag_retrieval(mdm)
+
+
+# Tool - Create Order
+# In order to declare a function, you need to use the @ast.function decorator
+# The function name should be unique and should not contain spaces
+# Description should be a short description of what the function does, 
+# this is very important for the assistant to understand the function
+# --------------------------------------------------------------------
+@ast.function('get_cryptocurrency_price', 'Get the price of any cryptocurrency', params=[
+    Param('asset_name', 'string', 'The name of the cryptocurrency, e.g. "BTC" for Bitcoin', required=True)
+])
+async def get_cryptocurrency_price(session, params, ctx: FunctionContext):    
+    log.debug(f"Got get_cryptocurrency_price from client:{ctx.lead.conversation_from.name}\
+                command with params: {params}")
+
+
+    # # TODO: Implement order creation logic here
+    # product = params['product']
+    # extra_ingredients = params['extra_ingredients']
+    # log.warning(f"Order created for product: {product} with extra ingredients: {extra_ingredients}") 
+
+    # # Response back using FunctionContext. This allows you to send a response back to genAI
+    # # request_mode=RequestMode.SINGLE is used to indicate that genAI must build a single response
+    return FunctionContext.\
+        response_text(f"BTC: $50000, ETH: $10000",
+                        request_mode=RequestMode.SINGLE)
+# --------------------------------------------------------------------
+
+
+
+# Create the Message Gateway - This component is the core of the assistant
+# It handles the communication between the assistant and the connectors
+webhook_url = os.environ.get("WEBHOOK_URL")
+gateway = MessageGateway(
+    webhook_url= webhook_url,
+    assistant=ast,
+    host="127.0.0.1", port=5004,
+    # message_enhancer=SmartMessageEnhancerOpenAI()
+)
+
+# For this example, we will use the Telegram connector
+conn = TelegramConnector(
+    token=os.environ.get("TELEGRAM_TOKEN"), 
+    stream_mode=StreamMode.FULL
+)
+# Register the connector with the gateway
+gateway.register_connector(conn)
+
+# Then start the gateway and begin processing messages
+gateway.run()
+
