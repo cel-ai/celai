@@ -17,6 +17,11 @@ The required environment variables are:
 - WEBHOOK_URL: The webhook URL for the assistant, you can use ngrok to create a public URL for your local server.
 - TELEGRAM_TOKEN: The Telegram bot token for the assistant. You can get this from the BotFather on Telegram.
 
+Run Ollama:
+-----------
+1. Start the Ollama server by running the following command in the terminal:
+    ```ollama run llama3-groq-tool-use```
+
 Then run this script to see a basic AI assistant in action.
 
 Note:
@@ -72,25 +77,22 @@ Las respuestas breves son obligatorias."""
 prompt_template = PromptTemplate(prompt)
 
 # Create the assistant based on the Macaw Assistant 
-# NOTE: Make sure to provide api key in the environment variable `OPENAI_API_KEY`
-# add this line to your .env file: OPENAI_API_KEY=your-key
-# or uncomment the next line and replace `your-key` with your OpenAI API key
-# os.environ["OPENAI_API_KEY"] = "your-key.." 
-llm = ChatOllama(
-    model="llama3-groq-tool-use",
-    temperature=0,
-)
+# --------------------------------------------------
+# Set the core, blend, and insights models to llama3-groq-tool-use
+# This is a custom model that is trained on the llama3 dataset for tool use
+# The model is trained to understand tool use cases
 agent_settings = MacawSettings(
     core_model='llama3-groq-tool-use', 
-    blend_model='llama3-groq-tool-use', 
+    blend_model='llama3-groq-tool-use',
     insights_model='llama3-groq-tool-use'
 )
-
+# Create the assistant using LLM ChatOllama
 ast = MacawAssistant(
     prompt=prompt_template, 
     llm=ChatOllama,
     settings=agent_settings
 )
+# --------------------------------------------------
 
 
 # Configure the RAG model using the MarkdownRAG provider
