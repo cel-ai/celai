@@ -119,13 +119,9 @@ async def get_cryptocurrency_price(session, params, ctx: FunctionContext):
                 command with params: {params}")
 
 
-    # # TODO: Implement order creation logic here
-    # product = params['product']
-    # extra_ingredients = params['extra_ingredients']
-    # log.warning(f"Order created for product: {product} with extra ingredients: {extra_ingredients}") 
-
-    # # Response back using FunctionContext. This allows you to send a response back to genAI
-    # # request_mode=RequestMode.SINGLE is used to indicate that genAI must build a single response
+    # TODO: Implement query to get the price of the cryptocurrency
+    
+    # Return a hardcoded response for now:
     return FunctionContext.\
         response_text(f"BTC: $50000, ETH: $10000",
                         request_mode=RequestMode.SINGLE)
