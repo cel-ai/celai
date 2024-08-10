@@ -21,6 +21,9 @@ Run Ollama:
 -----------
 1. Start the Ollama server by running the following command in the terminal:
     ```ollama run llama3-groq-tool-use```
+    
+2. Install embedding model by running the following command in the terminal:
+    ```ollama pull mxbai-embed-large```
 
 Then run this script to see a basic AI assistant in action.
 
@@ -56,7 +59,7 @@ from cel.assistants.function_context import FunctionContext
 from cel.assistants.function_response import RequestMode
 from cel.assistants.common import Param
 from cel.assistants.macaw.macaw_settings import MacawSettings
-
+from cel.rag.text2vec.cached_ollama import CachedOllamaEmbedding
 
 
 from langchain_ollama import ChatOllama
@@ -98,7 +101,12 @@ ast = MacawAssistant(
 # Configure the RAG model using the MarkdownRAG provider
 # by default it uses the CachedOpenAIEmbedding for text2vec
 # and ChromaStore for storing the vectors
-mdm = MarkdownRAG("demo", file_path="examples/3_1_ollama/qa.md", split_table_rows=True)
+mdm = MarkdownRAG(
+    "demo", 
+    file_path="examples/3_1_ollama/qa.md", 
+    split_table_rows=True,
+    text2vec=CachedOllamaEmbedding()
+)
 # Load from the markdown file, then slice the content, and store it.
 mdm.load()
 # Register the RAG model with the assistant

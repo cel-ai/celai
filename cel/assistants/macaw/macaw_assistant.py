@@ -141,7 +141,7 @@ class MacawAssistant(BaseAssistant):
             if args and args[0] == "all":
                 await self._history_store.clear_history(lead.get_session_id())
                 yield "History cleared"
-                self._state_store.set_store(lead.get_session_id(), {})
+                await self._state_store.set_store(lead.get_session_id(), {})
                 yield "State cleared"
                 return
 
