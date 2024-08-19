@@ -5,6 +5,8 @@ from dataclasses import dataclass
 
 @dataclass
 class Param(ABC):
+    """ Tool/Function parameter definition, mind that the enum and required 
+    fields may not be present in models other than the OpenAI. """
     name: str
     type: str
     description: str

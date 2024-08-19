@@ -19,6 +19,9 @@ The required environment variables are:
 
 Run Ollama:
 -----------
+0. Install Ollama on your machine by following the instructions on the official site
+    https://ollama.com/
+
 1. Start the Ollama server by running the following command in the terminal:
     ```ollama run llama3-groq-tool-use```
     
@@ -61,7 +64,7 @@ from cel.assistants.common import Param
 from cel.assistants.macaw.macaw_settings import MacawSettings
 from cel.rag.text2vec.cached_ollama import CachedOllamaEmbedding
 
-
+from utils import get_crypto_price
 from langchain_ollama import ChatOllama
 
 
@@ -75,7 +78,9 @@ from langchain_ollama import ChatOllama
 prompt = """Eres un asistente de inteligencia artificial amigable, Celai.
 Debes ayudar con las preguntas sobre criptomonedas.
 Responde en el idioma del cliente.
-Las respuestas breves son obligatorias."""
+Las respuestas breves son obligatorias.
+Customer's default currency: usd
+"""
 
 prompt_template = PromptTemplate(prompt)
 
@@ -120,20 +125,22 @@ ast.set_rag_retrieval(mdm)
 # this is very important for the assistant to understand the function
 # --------------------------------------------------------------------
 @ast.function('get_cryptocurrency_price', 'Get the price of any cryptocurrency', params=[
-    Param('asset_name', 'string', 'The name of the cryptocurrency, e.g. "BTC" for Bitcoin', required=True)
+    Param('asset_name', 'string', 'The full name of the cryptocurrency, e.g. bitcoin, cardano, ethereum, etc. Dont abbreviate'),
+    Param('currency', 'string', 'The currency to get the price in, e.g. usd, aud, gdb, etc.')
 ])
-async def get_cryptocurrency_price(session, params, ctx: FunctionContext):    
-    log.debug(f"Got get_cryptocurrency_price from client:{ctx.lead.conversation_from.name}\
-                command with params: {params}")
-
-
-    # TODO: Implement query to get the price of the cryptocurrency
-    
-    # Return a hardcoded response for now:
-    return FunctionContext.\
-        response_text(f"BTC: $50000, ETH: $10000",
+async def get_cryptocurrency_price(session, params, ctx: FunctionContext):        
+    try:
+        log.warning(f"Getting the price of {params['asset_name']} in {params.get('currency', 'usd')}")
+        prices = await get_crypto_price(params['asset_name'], params.get('currency', 'usd'))
+        return FunctionContext.response_text(f"{params['asset_name'].upper()}: ${prices}",
+                        request_mode=RequestMode.SINGLE)
+        
+    except Exception as e:
+        log.error(f"Error getting price: {e}")
+        return FunctionContext.response_text(f"Sorry, I couldn't get the price of {params['asset_name']}",
                         request_mode=RequestMode.SINGLE)
 # --------------------------------------------------------------------
+
 
 
 
