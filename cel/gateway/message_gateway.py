@@ -257,9 +257,9 @@ class MessageGateway:
 
         assert message is not None, "Message is None"
         assert isinstance(message, Message), "Message is not of type Message"
-        assert mode in [StreamMode.SENTENCE, 
-                        StreamMode.FULL, 
-                        StreamMode.DIRECT], "Invalid StreamMode"
+        # assert mode in [StreamMode.SENTENCE, 
+        #                 StreamMode.FULL, 
+        #                 StreamMode.DIRECT], "Invalid StreamMode"
         
         
         log.warning(f"Handling message: {message}")
@@ -394,8 +394,47 @@ class MessageGateway:
         self.connectors.append(connector)
         connector.set_gateway(self)
 
-    def run(self):
-        import uvicorn
-        uvicorn.run(self.app, host=self.host, port=self.port)
+    def run(self, enable_ngrok: bool = False):
+        # check if uvicorn is installed
+        try:
+            import uvicorn
+        except ImportError:
+            log.error("Uvicorn is not installed. Please install uvicorn to run the gateway")
+            return
+    
+        if enable_ngrok:
+            
+            try:
+                import ngrok
+            except ImportError:
+                log.error("Ngrok is not installed. \
+                          Please install ngrok to run the gateway with ngrok.\
+                              Execute the following command to install ngrok:\
+                                  pip install ngrok")
+                return
+            
+
+            log.info("Starting ngrok session")
+            async def setup():
+                session = await ngrok.SessionBuilder().authtoken_from_env().connect()
+                listener = await session.http_endpoint().listen()
+                log.info(f"Ngrok public endpoint: {listener.url()}")
+                self.webhook_url = listener.url()
+                
+                # Bind this session to the gateway host and port
+                forwardto = f"{self.host}:{self.port}"
+                listener.forward(forwardto)
+                log.info(f"Forwarding established from {listener.url()} to {forwardto}")
+
+            asyncio.run(setup())
+            # uvicorn.run(app=self.app)
+            uvicorn.run(self.app, host=self.host, port=self.port)
+            return 
+                
+        
+        else:
+            uvicorn.run(self.app, host=self.host, port=self.port)
+            return
+    
         
  
