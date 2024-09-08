@@ -17,7 +17,7 @@ texts=[
 @pytest.fixture
 def client():
     text2vec = CachedOpenAIEmbedding()
-    return ChromaStore(text2vec, collection_name='test_collection')
+    return ChromaStore(text2vec, collection_name='test_openai_collection')
 
 
     
