@@ -55,13 +55,15 @@ class FileAttachment(MessageAttachment):
                  title: str = None, 
                  description: str = None, 
                  content: any = None, 
-                 mimeType: str = None, 
+                 mimeType: str = None,
+                 file_url: str = None,
                  metadata: any = None,
                  type: MessageAttachmentType = None):
         self.title: str = title
         self.description: str = description
         self.content: any = content
         self.mimeType: str = mimeType
+        self.file_url: str = file_url
         self.metadata: any = metadata
         self.type = type
 
@@ -71,6 +73,7 @@ class FileAttachment(MessageAttachment):
             'description': self.description,
             'content': self.content,
             'mimeType': self.mimeType,
+            'file_url': self.file_url,
             'metadata': self.metadata
         }
         return data
@@ -82,7 +85,8 @@ class FileAttachment(MessageAttachment):
             description=attachment_dict.get("description"),
             content=attachment_dict.get("content"),
             mimeType=attachment_dict.get("mimeType"),
-            metadata=attachment_dict.get("metadata")
+            metadata=attachment_dict.get("metadata"),
+            file_url=attachment_dict.get("file_url")
         )
 
     def __str__(self):
