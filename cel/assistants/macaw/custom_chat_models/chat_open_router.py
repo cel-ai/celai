@@ -2,7 +2,8 @@
 
 import os
 from typing import Optional
-from langchain_community.chat_models import ChatOpenAI
+# from langchain_community.chat_models import ChatOpenAI
+from langchain_openai import ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate
 
 
@@ -38,16 +39,4 @@ def ChatOpenAIOpenRouter(**kwargs):
     )
 # --------------------------------------------------------------------
         
-        
-# if __name__ == '__main__':
-    
-#     # Load .env variables
-#     from dotenv import load_dotenv
-#     load_dotenv()
-    
-#     llm = ChatOpenRouter(
-#         model="mistralai/mixtral-8x7b-instruct"
-#     )
-#     prompt = ChatPromptTemplate.from_template("tell me a short joke about {topic}")
-#     openrouter_chain = prompt | llm
-#     print(openrouter_chain.invoke({"topic": "banana"}))
+
