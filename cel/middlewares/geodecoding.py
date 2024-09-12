@@ -39,7 +39,11 @@ class GeodecodingMiddleware:
                 if address:
                     location_attachment.metadata["address"] = address
                     desc = f"({location_attachment.description})" if location_attachment.description else ""
+                    
+                    # ------------------------------------------------------------------
                     message.text = f"{self.location_prefix_msg} {desc} {address}"
+                    # ------------------------------------------------------------------
+                    
                     log.debug(f"{self.location_prefix_msg}{location_attachment}")
             return True
         except ValueError as e:

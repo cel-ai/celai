@@ -7,9 +7,7 @@ from cel.assistants.macaw.macaw_settings import MacawSettings
 from cel.gateway.model.conversation_lead import ConversationLead
 from cel.prompt.prompt_template import PromptTemplate
 from cel.stores.history.base_history_provider import BaseHistoryProvider
-from cel.stores.history.history_inmemory_provider import InMemoryHistoryProvider
 from cel.stores.state.base_state_provider import BaseChatStateProvider
-from cel.stores.state.state_inmemory_provider import InMemoryStateProvider
 from langchain.load.load import loads, load
 from langchain.load.dump import dumps
 
@@ -40,19 +38,20 @@ class MacawAssistant(BaseAssistant):
     
     def __init__(self, 
                  state: dict = None,
-                 history_store:BaseHistoryProvider=None, 
-                 state_store: BaseChatStateProvider=None,
+                 history_store: BaseHistoryProvider = None, 
+                 state_store: BaseChatStateProvider = None,
                  prompt: PromptTemplate = None,
                  insight_targets: dict = {},
                  settings: MacawSettings = None,
                  llm=None,
                 ):
         
-        super().__init__(prompt=prompt)
+        super().__init__(prompt=prompt, 
+                         history_store=history_store, 
+                         state_store=state_store)
+        
         self.state = state or {}
         self.insight_targets = insight_targets
-        self._state_store = state_store or InMemoryStateProvider()
-        self._history_store = history_store or InMemoryHistoryProvider()
         if settings is None:
             log.warning("No settings provided for Macaw Assistant, using default settings")
         self.settings = settings or MacawSettings()
