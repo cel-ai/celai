@@ -6,6 +6,7 @@ from fastapi import APIRouter, BackgroundTasks
 from loguru import logger as log
 import shortuuid
 import json
+from aiogram.types.input_file import BufferedInputFile, FSInputFile
 from cel.comms.utils import async_run
 from cel.gateway.model.base_connector import BaseConnector
 from cel.gateway.message_gateway import StreamMode
@@ -64,6 +65,7 @@ class TelegramConnector(BaseConnector):
             log.debug(payload)
             msg = await TelegramMessage.load_from_message(payload, self.token, connector=self)
             
+            
             if self.paused:
                 log.warning("Connector is paused, ignoring message")
                 return 
@@ -97,6 +99,21 @@ class TelegramConnector(BaseConnector):
         """        
         log.debug(f"Sending message to chat_id: {lead.chat_id}, text: {text}, is_partial: {is_partial}")
         await self.bot.send_message(chat_id=lead.chat_id, text=text)      
+
+
+    async def send_image_message(self, lead: TelegramLead, image: Any, filename: str, metadata: dict = {}, is_partial: bool = True):
+        """ Send an image message from memory to the lead. The image must be an image file in memory.
+        The image will be sent to the lead.
+        
+        Args:
+            - lead[TelegramLead]: The lead to send the message
+            - image[Any]: The image file to send
+            - metadata[dict]: Metadata to send with the message
+            - is_partial[bool]: If the message is partial or not
+        """
+        log.debug(f"Sending Image Message to chat_id: {lead.chat_id}, is_partial: {is_partial}")
+        photo = BufferedInputFile(image, filename=filename)
+        await self.bot.send_photo(chat_id=lead.chat_id, photo=photo)
 
 
     async def send_select_message(self, 
