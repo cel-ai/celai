@@ -120,6 +120,21 @@ class MessageGateway:
                             middleware: Callable[[Message, BaseConnector, BaseAssistant], bool]):
         self.middlewares.append(middleware)
         
+        # if middleware has a setup method, call it, passing self.app as the argument
+        # only if the setup method has one argument
+        if hasattr(middleware, "setup"):
+            try:
+                # get middleware class name
+                name = middleware.__class__.__name__
+                # create a router with prefix: middlewares
+                router = APIRouter(prefix=f"/middlewares/{name}")
+                middleware.setup(router)
+                # register the router with the app
+                self.app.include_router(router)
+            except Exception as e:
+                log.error(f"Error setting up middleware: {e}")
+        
+        
         
     def base_routes(self):
         router = APIRouter()
