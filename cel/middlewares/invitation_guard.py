@@ -293,6 +293,7 @@ class InvitationGuardMiddleware(ABC):
             return InvitationEntry(invite_code=entry.get('invite_code'), 
                                    created_at=entry.get('created_at'), 
                                    expires_at=entry.get('expires_at'), 
+                                   used=entry.get('used'),
                                    name=entry.get('name'))
         return None
     
@@ -361,9 +362,14 @@ class InvitationGuardMiddleware(ABC):
                 invitation = await self.create_invitation(name=parts[1])
                 url = self.__gen_invitation_url(invitation.invite_code)
                 qr = self.__gen_barcode(url)
-                await connector.send_image_message(message.lead, qr, filename="qrcode.png")
-                await connector.send_text_message(message.lead, f"Invitation link: {url}")
-                await connector.send_text_message(message.lead, f"Code: {invitation.invite_code}")
+                caption = f"Invitation code: {invitation.invite_code}"
+                caption = caption + f"\nLink: {url}"
+                await connector.send_image_message(message.lead, 
+                                                   qr, 
+                                                   filename="qrcode.png",
+                                                   caption=caption)
+                # await connector.send_text_message(message.lead, f"Invitation link: {url}")
+                # await connector.send_text_message(message.lead, f"Code: {invitation.invite_code}")
             else:
                 await connector.send_text_message(message.lead, "Invalid invite command format")
             
