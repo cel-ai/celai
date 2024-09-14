@@ -101,7 +101,7 @@ class TelegramConnector(BaseConnector):
         await self.bot.send_message(chat_id=lead.chat_id, text=text)      
 
 
-    async def send_image_message(self, lead: TelegramLead, image: Any, filename: str, metadata: dict = {}, is_partial: bool = True):
+    async def send_image_message(self, lead: TelegramLead, image: Any, filename: str,  caption:str = None, metadata: dict = {}, is_partial: bool = True):
         """ Send an image message from memory to the lead. The image must be an image file in memory.
         The image will be sent to the lead.
         
@@ -113,7 +113,7 @@ class TelegramConnector(BaseConnector):
         """
         log.debug(f"Sending Image Message to chat_id: {lead.chat_id}, is_partial: {is_partial}")
         photo = BufferedInputFile(image, filename=filename)
-        await self.bot.send_photo(chat_id=lead.chat_id, photo=photo)
+        await self.bot.send_photo(chat_id=lead.chat_id, photo=photo, caption=caption)
 
 
     async def send_select_message(self, 

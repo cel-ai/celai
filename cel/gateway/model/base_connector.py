@@ -30,10 +30,10 @@ class BaseConnector:
         raise NotImplementedError
     
     # Send an image message from memory
-    async def send_image_message(self, lead, image: Any, filename:str, metadata: dict = {}, is_partial: bool = True):
+    async def send_image_message(self, lead, image: Any, filename:str, caption:str = None, metadata: dict = {}, is_partial: bool = True):
         raise NotImplementedError
     
-    async def send_image_url_message(self, lead, image_url: str, metadata: dict = {}, is_partial: bool = True):
+    async def send_image_url_message(self, lead, image_url: str, caption:str = None, metadata: dict = {}, is_partial: bool = True):
         raise NotImplementedError
     
     async def send_typing_action(self, lead):
