@@ -16,6 +16,7 @@ Configure the required environment variables in a .env file in the root director
 The required environment variables are:
 - WEBHOOK_URL: The webhook URL for the assistant, you can use ngrok to create a public URL for your local server.
 - TELEGRAM_TOKEN: The Telegram bot token for the assistant. You can get this from the BotFather on Telegram.
+- OPENAI_API_KEY: The OpenAI API key for the assistant.
 
 Then run this script to see a basic AI assistant in action.
 
@@ -82,6 +83,9 @@ conn = TelegramConnector(
     # SENTENCE mode will send the message to the user every time a sentence is completed
     stream_mode=StreamMode.FULL
 )
+
+
+                         
 # Register the connector with the gateway
 gateway.register_connector(conn)
 
