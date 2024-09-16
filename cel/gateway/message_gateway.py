@@ -1,7 +1,7 @@
 import asyncio
 from typing import Callable
 from loguru import logger as log
-from fastapi import APIRouter, FastAPI
+from fastapi import APIRouter, Depends, FastAPI, HTTPException, Request, Response
 from loguru import logger as log
 
 from cel.assistants.stream_content_chunk import StreamContentChunk
@@ -95,6 +95,8 @@ class MessageGateway:
                  delivery_rate_control_ratio: int = DEFAULT_CHARS_SLEEP_TIME_RATIO,
                  middlewares: list[Callable[[Message, BaseConnector], bool]] = None,
                  message_enhancer: Callable[[ConversationLead, str, bool], OutgoingMessage] = None,
+                 gateway_api_key: str = None,
+                 gateway_api_key_header: str = "x-api-key",
                  *args,
                  **kwargs
                 ):
@@ -102,6 +104,9 @@ class MessageGateway:
         self.host = host
         self.port = port
         self.connectors : list[BaseConnector] = []
+        self.secured_paths = ["/gateway", "/middlewares"]
+        
+        
         self.app = FastAPI(
             title="Message Gateway",
             description="A message gateway for handling messages from different sources",
@@ -109,6 +114,46 @@ class MessageGateway:
             on_shutdown=[self.__shutdown],
             *args, **kwargs
         )
+        
+        if gateway_api_key is not None:
+            def path_is_secure(path: str):
+                for p in self.secured_paths:
+                    if path.startswith(p):
+                        return True
+                return False
+            
+            
+            @self.app.middleware("http")
+            async def secure_middleware(request: Request, call_next):
+                
+                if path_is_secure(request.url.path):             
+                    if gateway_api_key_header not in request.headers:
+                        response = await call_next(request)
+                        response.status_code = 401
+                        log.error(f"API key not found in headers: {request.url}")
+                        log.error(f"Headers: {request.headers}")
+                        log.warning(f"Add your API Key into header: {gateway_api_key_header}")
+                        return response
+                    
+                    key = request.headers[gateway_api_key_header]
+                    if key != gateway_api_key:
+                        response = await call_next(request)
+                        response.status_code = 401
+                        log.error(f"Invalid API key: {request.url} invalid key: {key}")
+                        return response
+                
+                response = await call_next(request)
+                return response
+            
+        health_router = APIRouter(prefix="/health", tags=["health"])
+        
+        @health_router.get("/")
+        async def health():
+            return {"status": "ok"}
+        
+        
+        
+        self.app.include_router(health_router)
         self.app.include_router(self.base_routes())
         self.assistant: BaseAssistant = assistant
         self.delivery_rate_control = delivery_rate_control
@@ -119,7 +164,7 @@ class MessageGateway:
     def register_middleware(self, 
                             middleware: Callable[[Message, BaseConnector, BaseAssistant], bool]):
         self.middlewares.append(middleware)
-        
+        log.debug(f"Middleware {middleware.__class__.__name__} registered")
         # if middleware has a setup method, call it, passing self.app as the argument
         # only if the setup method has one argument
         if hasattr(middleware, "setup"):
@@ -127,7 +172,7 @@ class MessageGateway:
                 # get middleware class name
                 name = middleware.__class__.__name__
                 # create a router with prefix: middlewares
-                router = APIRouter(prefix=f"/middlewares/{name}")
+                router = APIRouter(prefix=f"/middlewares/{name}", tags=["middlewares"])
                 middleware.setup(router)
                 # register the router with the app
                 self.app.include_router(router)
@@ -137,12 +182,10 @@ class MessageGateway:
         
         
     def base_routes(self):
-        router = APIRouter()
-        
-        @router.get("/ping")
-        async def get_ping():
-            return {"message": "pong"}
-        
+       
+        router = APIRouter(prefix="/gateway", 
+                           tags=["gateway"])
+                
         @router.get("/pause")
         async def get_pause():
             for connector in self.connectors:
@@ -399,13 +442,18 @@ class MessageGateway:
     def register_connector(self, connector: BaseConnector):
         assert isinstance(connector, BaseConnector), "Connector must be an instance of BaseConnector"
         conn = connector.get_router()
-        assert conn is None or isinstance(conn, APIRouter), "Router must be an instance of APIRouter"
+        assert conn is None or\
+            isinstance(conn, APIRouter) or\
+            isinstance(conn, FastAPI), "Router must be an instance of APIRouter or FastAPI"
         
         if conn is None:
             log.warning(f"Connector {connector.name()} has no router")
         else:
-            self.app.include_router(conn)
-            
+            if isinstance(conn, FastAPI):
+                self.app.mount(f"/{connector.name()}", conn)
+            else:
+                self.app.include_router(conn)
+
         self.connectors.append(connector)
         connector.set_gateway(self)
 
