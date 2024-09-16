@@ -42,19 +42,18 @@ class TelegramConnector(BaseConnector):
         assert self.token, "TELEGRAM_TOKEN env var must be set"
         
         
-    def __create_routes(self, router: APIRouter):
-        @router.get("/items/{item_id}")
-        async def read_item(item_id: int, q: str = None):
-            return {"item_id": item_id, "q": q}
-        
-        @router.post(f"/webhook/{self.security_token}")
-        async def telegram_webhook(payload: Dict[Any, Any], background_tasks: BackgroundTasks):
+    def __create_routes(self, router: APIRouter):        
+        @router.post("/webhook/{security_token}")
+        async def telegram_webhook(security_token, payload: Dict[Any, Any], background_tasks: BackgroundTasks):
+            
+            if security_token != self.security_token:
+                raise Exception("Invalid security token")
             # process message in background in order to quickly return 200 OK to telegram 
             # long running tasks should be processed in background
             # telegram timeout policy will retry sending the message if it does 
             # not receive 200 OK in ~30 seconds
             # return anything different than 200 OK will make telegram retry 
-            # sending the message up to 3 times. 
+            # sending the message up to 3 times.
             background_tasks.add_task(self.__process_message, payload)
             return {"status": "ok"}
 
