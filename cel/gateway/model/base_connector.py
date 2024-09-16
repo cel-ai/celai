@@ -1,5 +1,5 @@
 from fastapi import APIRouter
-from typing import Any, Callable
+from typing import Any
 from .message_gateway_context import MessageGatewayContext
 
 
