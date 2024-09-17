@@ -53,7 +53,9 @@ from cel.middlewares.invitation_guard import InvitationGuardMiddleware
 from cel.gateway.request_context import RequestContext
 
 # Setup prompt
-prompt = """You are an AI assistant. Called Celia. You can help a user to buy Bitcoins."""
+prompt = """You are an AI assistant. Called Celia. 
+Keep answers short and to the point.
+You can help a user to buy Bitcoins."""
 prompt_template = PromptTemplate(prompt)
 
 # Create the assistant based on the Macaw Assistant 
@@ -101,7 +103,9 @@ guard = InvitationGuardMiddleware(
     master_key="123456",
     # Backdoor invite will allow you to bypass the invitation 
     # process and gain access to the assistant
-    backdoor_invite_code="#QWERTY"    
+    backdoor_invite_code="#QWERTY",
+    telegram_bot_name="lola_lionel_bot",
+    allow_only_invited=True
 )
 gateway.register_middleware(guard)
 

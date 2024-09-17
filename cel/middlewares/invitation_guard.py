@@ -63,12 +63,24 @@ class InvitationGuardMiddleware(ABC):
         - admin_login: Event called when a user logs in as admin.
         - admin_logout: Event called when a user logs out as admin.
         
+    Args:
+        telegram_bot_name: The name of the Telegram bot for URL generation
+        whatsapp_phone_number: The phone number of the WhatsApp bot for URL generation
+        redis: The Redis database URL
+        key_prefix: The prefix for the keys in the Redis database
+        master_key: The master key to login as admin
+        reject_message: The message to send when a user is rejected
+        backdoor_invite_code: The backdoor invite code
+        allow_only_invited: Allow only invited users to access the service
+        
     """
     
     events: InvitationGuardMiddlewareEvents = InvitationGuardMiddlewareEvents()
     
     
     def __init__(self, 
+                 telegram_bot_name: str = None,
+                 whatsapp_phone_number: str = None,
                  redis: str | Redis = None, 
                  key_prefix: str = "igm", 
                  master_key: str = None,
@@ -84,6 +96,8 @@ class InvitationGuardMiddleware(ABC):
         self.allow_only_invited = allow_only_invited
         self.reject_message = reject_message
         self.backdoor_invite_code = backdoor_invite_code
+        self.telegram_bot_name = telegram_bot_name
+        self.whatsapp_phone_number = whatsapp_phone_number
         
     
     # Setup the middleware with the FastAPI application    
@@ -235,7 +249,7 @@ class InvitationGuardMiddleware(ABC):
                 await connector.send_text_message(message.lead, "Code already used")
                 await assistant.call_event(self.events.rejected_code, message.lead, message, connector)
                 return False
-                        
+
             # Accept the code
             # --------------------------------
             await self.set_entry(message.lead.get_session_id(), invite_code=code)
@@ -266,16 +280,23 @@ class InvitationGuardMiddleware(ABC):
         qr_bytes = stream.getvalue()
         return qr_bytes
     
-    def __gen_invitation_url(self, code: str):
+    def __gen_telegram_invitation_url(self, code: str):
+        assert self.telegram_bot_name, "Telegram bot name must be provided"
         import base64
         #  the code must be up to 64 base64url characters
         input_bytes = code.encode('utf-8')
         base64url_bytes = base64.urlsafe_b64encode(input_bytes)
         code_encoded = base64url_bytes.decode('utf-8')        
+        
+        assert len(code_encoded) <= 64, "Code must be up to 64 base64url characters"
     
-        url = f"https://t.me/lola_lionel_bot?start={code_encoded}"
+        url = f"https://t.me/{self.telegram_bot_name}?start={code_encoded}"
         return url        
         
+    def __gen_whatsapp_invitation_url(self, code: str):
+        assert self.whatsapp_phone_number, "WhatsApp phone number must be provided"
+        url = f"https://wa.me/{self.whatsapp_phone_number}?text={code}"
+        return url
     
     async def create_invitation(self, expires_at: int = 0, name: str = None):
         code = self.__gen_invite_code()
@@ -292,7 +313,8 @@ class InvitationGuardMiddleware(ABC):
             entry = json.loads(entry)
             return InvitationEntry(invite_code=entry.get('invite_code'), 
                                    created_at=entry.get('created_at'), 
-                                   expires_at=entry.get('expires_at'), 
+                                   expires_at=entry.get('expires_at'),
+                                   used=entry.get('used'), 
                                    name=entry.get('name'))
         return None
     
@@ -359,11 +381,23 @@ class InvitationGuardMiddleware(ABC):
             parts = text.split(" ")
             if len(parts) == 2:
                 invitation = await self.create_invitation(name=parts[1])
-                url = self.__gen_invitation_url(invitation.invite_code)
-                qr = self.__gen_barcode(url)
-                await connector.send_image_message(message.lead, qr, filename="qrcode.png")
-                await connector.send_text_message(message.lead, f"Invitation link: {url}")
-                await connector.send_text_message(message.lead, f"Code: {invitation.invite_code}")
+                source = message.lead.connector_name
+                qr = None
+                url = None
+                if source == "telegram":
+                    url = self.__gen_telegram_invitation_url(invitation.invite_code)
+                    qr = self.__gen_barcode(url)
+                
+                if source == "whatsapp":
+                    url = self.__gen_whatsapp_invitation_url(invitation.invite_code)
+                    qr = self.__gen_barcode(url)
+                    
+                if qr and url:
+                    await connector.send_image_message(message.lead, qr, filename="qrcode.png")
+                    await connector.send_text_message(message.lead, f"Invitation link: {url}")
+                    await connector.send_text_message(message.lead, f"Code: {invitation.invite_code}")
+                else: 
+                    log.error(f"Invalid source {source} for invitation")
             else:
                 await connector.send_text_message(message.lead, "Invalid invite command format")
             
