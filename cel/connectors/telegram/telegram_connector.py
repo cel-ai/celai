@@ -1,3 +1,4 @@
+import asyncio
 import os
 from loguru import logger as log
 from typing import Any, Callable, Dict
@@ -35,6 +36,7 @@ class TelegramConnector(BaseConnector):
         self.__create_routes(self.router)
         
         self.stream_mode = stream_mode
+        self.user_queues = {}
         
         
         self.report_errors_to_telegram = report_errors_to_telegram or os.getenv("REPORT_ERRORS_TO_TELEGRAM", False)
@@ -54,10 +56,41 @@ class TelegramConnector(BaseConnector):
             # not receive 200 OK in ~30 seconds
             # return anything different than 200 OK will make telegram retry 
             # sending the message up to 3 times.
-            background_tasks.add_task(self.__process_message, payload)
+            # background_tasks.add_task(self.__process_message, payload)
+            await self.__enqueue_message(payload)
             return {"status": "ok"}
 
-            
+    async def __process_user_queue(self, chat_id: str):
+        queue = self.user_queues[chat_id]
+        
+        while True:
+            message = await queue.get()
+            try:
+                # Procesa el mensaje (reemplaza esta función por tu lógica)
+                await self.__process_message(message)
+            except Exception as e:
+                log.debug(f"Error processing message for user {chat_id}: {e}")
+            finally:
+                queue.task_done()
+
+            # Si deseas limpiar las colas y tareas cuando estén vacías:
+            if queue.empty():
+                # Opcionalmente, puedes agregar un retraso aquí si esperas más mensajes pronto
+                del self.user_queues[chat_id]
+                log.debug(f"User {chat_id} queue has been cleared")
+                break  # Sal del bucle y termina la tarea
+
+
+    async def __enqueue_message(self, payload: dict):
+        chat_id =  str(payload["message"]["from"]["id"])
+        log.debug(f"Enqueuing message for chat_id: {chat_id}")
+        if chat_id not in self.user_queues:
+            # Crea una nueva cola y tarea para el nuevo usuario
+            self.user_queues[chat_id] = asyncio.Queue()
+            asyncio.create_task(self.__process_user_queue(chat_id))
+        await self.user_queues[chat_id].put(payload)
+
+
     async def __process_message(self, payload: dict):
         try:
             log.debug("Received Telegram webhook")
