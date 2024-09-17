@@ -59,8 +59,10 @@ class AtlasStore(VectorStore):
                 # Use default index definition if none provided
                 # Get the dimension of the embeddings
                 if self.num_dimensions is None:
+                    log.debug("num_dimensions not provided")
                     # Try to infer num_dimensions from the text2vec_provider if possible
                     self.num_dimensions = self._infer_num_dimensions()
+                    log.debug(f"Inferred num_dimensions: {self.num_dimensions}")
                 if self.num_dimensions is None:
                     raise ValueError(
                         "num_dimensions is required to create the search index. "
