@@ -31,10 +31,12 @@ class OpenAIEndpointModerationMiddleware():
         - custom_evaluation_function: A custom function that accepts a message and returns a Moderation object.
         - on_mod_fail_continue: A boolean that determines if the middleware should continue processing if the moderation fails.
         - expire_after: An integer that determines the time in seconds after which the user flags should be reset.
+        
+        For more info follow https://platform.openai.com/docs/guides/moderation
     """
     
     def __init__(self,
-                 custom_evaluation_function: Callable[[str], Moderation],
+                 custom_evaluation_function: Callable[[str], Moderation] = None,
                  enable_expiration: bool = True,
                  expire_after: int = 86400,
                  prunning_interval: int = 60,
@@ -93,7 +95,13 @@ class OpenAIEndpointModerationMiddleware():
                 }
                 message.metadata = message.metadata or {}
                 message.metadata['moderation'] = report
-                await assistant.call_event(OpenAIEndpointModerationMiddlewareEvents.on_message_flagged, message, data=report)
+                
+                # (self, event_name: str, lead: ConversationLead, message: Message = None, connector: BaseConnector = None, data: dict= None) -> EventResponse:
+                await assistant.call_event(
+                    OpenAIEndpointModerationMiddlewareEvents.on_message_flagged, 
+                    lead=message.lead, 
+                    connector=connector,
+                    data=report)
                 
             return True
             
