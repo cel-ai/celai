@@ -49,6 +49,7 @@ langchain-openai = ">=0.1.8"
 aiogram = ">=3.6.0"
 ollama = ">=0.3.1"
 qrcode = ">=7.4.2"
+pymongo = ">=4.8.0"
 
 [tool.poetry.group.dev.dependencies]
 pytest = ">=8.2.0"
