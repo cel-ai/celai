@@ -57,7 +57,7 @@ async def test_insight_with_events(lead: ConversationLead):
         history_store=history_store
     )
     
-    @assistant.event('insigths')
+    @assistant.event('insights')
     async def handle_insight(session, ctx: RequestContext, data: dict):
         global insights_from_event
         insights_from_event = data
