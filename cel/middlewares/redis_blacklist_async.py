@@ -30,9 +30,12 @@ class RedisBlackListAsyncMiddleware:
         else:
             return True
 
-    async def add_to_black_list(self, id: str, reason: str = None):
+    async def add_to_black_list(self, id: str, reason: str = None, ttl: int = None):
         entry = BlackListEntry(reason=reason, date=int(time.time()))
         await self.client.hset(self.black_list_key, id, json.dumps(asdict(entry)))
+        # set expiration
+        if ttl:
+            await self.client.expire(self.black_list_key, ttl)
 
     async def remove_from_black_list(self, id: str):
         await self.client.hdel(self.black_list_key, id)
