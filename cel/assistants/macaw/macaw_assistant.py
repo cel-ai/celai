@@ -1,3 +1,4 @@
+import asyncio
 import json
 from loguru import logger as log
 from cel.assistants.base_assistant import BaseAssistant
@@ -87,6 +88,10 @@ class MacawAssistant(BaseAssistant):
     
         except Exception as e:
             log.error(f"Macaw Assistant: error processing new message: {e}")
+            
+        # execute coroutine to get insights in background dont wait for it
+        asyncio.create_task(self.do_insights(lead, history_length=10))
+        # self.do_insights(lead, history_length=10)
         
 
     async def blend(self, lead: ConversationLead, text: str, history_length: int = None):
