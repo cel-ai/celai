@@ -134,7 +134,7 @@ class MacawAssistant(BaseAssistant):
         insights = await process_insights(ctx, targets=mix_targets)
         
         # raise insight event
-        await self.call_event("insigths", lead, data=insights)
+        await self.call_event("insights", lead, data=insights)
         return insights
         
     

@@ -82,7 +82,7 @@ ast = MacawAssistant(
     insight_targets=insight_targets
 )
 
-@ast.event('insigths')
+@ast.event('insights')
 def handler_on_message_flagged(session, ctx: RequestContext, data: dict):
     log.critical(f"Got insights")
     log.warning(f"Got insights event with data: {data}")
