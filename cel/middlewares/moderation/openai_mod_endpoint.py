@@ -1,5 +1,6 @@
 from abc import ABC
 import asyncio
+import threading
 import time
 from typing import Callable
 from openai import OpenAI
@@ -9,15 +10,13 @@ from cel.gateway.model.base_connector import BaseConnector
 from cel.gateway.model.message import Message
 from loguru import logger as log
 
+from cel.middlewares.moderation.moderation_events import ModMiddlewareEvents
+
 
 class RedFlagEntry(ABC):
     count: int = 0
     updated_at: int = 0
     
-
-
-class OpenAIEndpointModerationMiddlewareEvents:
-    on_message_flagged = "on_message_flagged"
 
 class OpenAIEndpointModerationMiddleware():
     """ OpenAIEndpointModerationMiddleware is a middleware that uses OpenAI API to moderate messages.
@@ -37,7 +36,7 @@ class OpenAIEndpointModerationMiddleware():
     
     def __init__(self,
                  custom_evaluation_function: Callable[[str], Moderation] = None,
-                 enable_expiration: bool = True,
+                 enable_expiration: bool = False,
                  expire_after: int = 86400,
                  prunning_interval: int = 60,
                  on_mod_fail_continue: bool = True):
@@ -49,14 +48,26 @@ class OpenAIEndpointModerationMiddleware():
         self.expire_after = expire_after
         self.prunning_interval = prunning_interval
         
-        # start a coroutine to reset user flags if expiration is enabled
+        
         if enable_expiration:
-            asyncio.create_task(self.reset_user_flags_loop())
+            # Asegúrate de que el bucle de eventos esté corriendo
+            self.loop = asyncio.get_event_loop()
+            if not self.loop.is_running():
+                threading.Thread(target=self._start_event_loop, daemon=True).start()
+            
+            # Inicia la coroutine en segundo plano
+            self.loop.call_soon_threadsafe(asyncio.create_task, self.reset_user_flags_loop()) 
+                           
+        
+    def _start_event_loop(self):
+        asyncio.set_event_loop(self.loop)
+        self.loop.run_forever()
         
         
     async def reset_user_flags_loop(self):
-        while True:
+        while True:            
             await asyncio.sleep(self.prunning_interval)
+            log.debug(f"OpenAIEndpointModerationMiddleware: Prunning user flags each {self.prunning_interval} seconds")
             current_time = time.time()
             expired_sessions = [
                 session_id for session_id, flags in self.user_flags.items()
@@ -98,7 +109,7 @@ class OpenAIEndpointModerationMiddleware():
                 
                 # (self, event_name: str, lead: ConversationLead, message: Message = None, connector: BaseConnector = None, data: dict= None) -> EventResponse:
                 await assistant.call_event(
-                    OpenAIEndpointModerationMiddlewareEvents.on_message_flagged, 
+                    ModMiddlewareEvents.on_message_flagged, 
                     lead=message.lead, 
                     connector=connector,
                     data=report)
