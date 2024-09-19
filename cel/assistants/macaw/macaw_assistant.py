@@ -90,8 +90,9 @@ class MacawAssistant(BaseAssistant):
             log.error(f"Macaw Assistant: error processing new message: {e}")
             
         # execute coroutine to get insights in background dont wait for it
-        asyncio.create_task(self.do_insights(lead, history_length=10))
-        # self.do_insights(lead, history_length=10)
+        if self.insight_targets:
+            asyncio.create_task(self.do_insights(lead, history_length=self.settings.insights_history_window_length))
+        
         
 
     async def blend(self, lead: ConversationLead, text: str, history_length: int = None):
