@@ -18,6 +18,9 @@ The required environment variables are:
 - TELEGRAM_TOKEN: The Telegram bot token for the assistant. You can get this from the BotFather on Telegram.
 - OPENAI_API_KEY: The OpenAI API key for the assistant.
 
+Or if you want to test TogetherAI hosted llama3-guard-moderation, you can use the following environment variables:
+- TOGETHERAI_API_KEY: The TogetherAI API key for the assistant.
+
 Then run this script to see a basic AI assistant in action.
 
 Note:
@@ -46,16 +49,43 @@ from cel.connectors.telegram import TelegramConnector
 from cel.gateway.message_gateway import MessageGateway, StreamMode
 from cel.assistants.macaw.macaw_assistant import MacawAssistant
 from cel.prompt.prompt_template import PromptTemplate
-from cel.middlewares.moderation.openai_mod_endpoint import OpenAIEndpointModerationMiddleware, OpenAIEndpointModerationMiddlewareEvents
+from cel.middlewares.moderation.openai_mod_endpoint import OpenAIEndpointModerationMiddleware
+from cel.middlewares.moderation.llama3_guard_togetherai import Llama3GuardModerationMiddleware
+from cel.middlewares.moderation.moderation_events import ModMiddlewareEvents
 from cel.middlewares.in_mem_blacklist import InMemBlackListMiddleware
 from cel.gateway.request_context import RequestContext
-from cel.assistants.macaw.macaw_settings import MacawSettings
 
-mod = OpenAIEndpointModerationMiddleware(enable_expiration=False) 
+
+# Uncomment the next line to use TogetherAI hosted llama3-guard-moderation
+# --------------------------------------------------------------------------
+# mod = Llama3GuardModerationMiddleware(
+#     # Allow accumulation of flags expiring
+#     # enable_expiration=True,
+#     # Prunning interval in seconds, each 5 seconds 
+#     # the middleware will check for expired flags
+#     # prunning_interval=5,
+#     # Expire after 5 seconds
+#     # expire_after=5
+# )
+
+# OpenAI moderation middleware
+# --------------------------------------------------------------------------
+mod = OpenAIEndpointModerationMiddleware(
+    # Allow accumulation of flags expiring
+    # enable_expiration=True,
+    # Prunning interval in seconds, each 5 seconds
+    # the middleware will check for expired flags
+    # prunning_interval=5,
+    # Expire after 5 seconds
+    # expire_after=5
+)
+
+
+# The blacklist middleware will be used to ban users
+# Ban policy can be implemented in the on_message_flagged event 
 blacklist = InMemBlackListMiddleware(
     # return a messaje when the user is blacklisted
-    # with emojis
-    reject_message="🚫 Lo siento pero no puedo ayudarte en este momento 🚫"
+    reject_message="🚫 Sorry, you are banned 🚫"
 )
 
 # Setup prompt
@@ -71,15 +101,19 @@ ast = MacawAssistant(
     prompt=prompt_template
 )
 
-@ast.event(OpenAIEndpointModerationMiddlewareEvents.on_message_flagged)
+# Handle the on_message_flagged event rised by the moderation middleware on flagged messages
+@ast.event(ModMiddlewareEvents.on_message_flagged)
 def handler_on_message_flagged(session, ctx: RequestContext, data):
     count = data['count'] 
+    
     log.critical(f"Message flagged counting: {count}")
+    # If the message is flagged more than 3 times, ban the user for 20 seconds
     if count > 2:
         log.critical(f"Message flagged more than 3 times")
         # TODO: Ban user
         blacklist.add_to_black_list(ctx.lead.get_session_id(), ttl=20)
     else:
+        # If the message is flagged more than 4 times, ban the user for 60 seconds
         if count > 4:
             log.critical(f"Message flagged more than 1 time")
             blacklist.add_to_black_list(ctx.lead.get_session_id(), ttl=60)
@@ -104,9 +138,13 @@ conn = TelegramConnector(
 gateway.register_connector(conn)
 
 
-
-gateway.register_middleware(mod)
+# Register the moderation middleware and the blacklist middleware
 gateway.register_middleware(blacklist)
+# Note that Blacklist middleware should be registered before the moderation middleware
+# to prevent banned users from sending messages to further middlewares that may
+# incur in inference costs
+gateway.register_middleware(mod)
+
 
 # Then start the gateway and begin processing messages
 gateway.run(enable_ngrok=True)
