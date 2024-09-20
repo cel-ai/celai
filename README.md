@@ -1,7 +1,8 @@
 <!-- A centered logo of celia -->
 <p align="center">
-  <img src="cel/assets/celia_logo.png" width="250" />
+  <img src="https://raw.githubusercontent.com/cel-ai/celai/30b489b21090e3c3f00ffea66d0ae4ac812bd839/cel/assets/celia_logo.png" width="250" />
 </p>
+
 
 # Introduction
 
