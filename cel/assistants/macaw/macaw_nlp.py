@@ -100,7 +100,16 @@ async def process_new_message(ctx: MacawNlpInferenceContext, message: str, on_fu
     # Load messages from store
     msgs = await history_store.get_last_messages(
         ctx.lead, 
-        ctx.settings.core_history_window_length) or []
+        ctx.settings.core_history_window_length + 2) or []
+    
+    if msgs and len(msgs) > ctx.settings.core_history_window_length:
+        #  Messages: position 0 is the last message
+        #  Avoid error: 
+        #  Invalid parameter: messages with role 'tool' must be a response to a preceeding message with 'tool_calls'
+        if msgs[0].type == "tool":
+            msgs = msgs[1:]
+            
+    
     # Map to BaseMessages and append to messages
     messages.extend(msgs)
     
