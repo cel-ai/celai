@@ -5,7 +5,18 @@ from cel.gateway.model.message import Message
 from cel.middlewares.redis_blacklist import RedisBlackListMiddleware
 import fakeredis
 
-from tests.middlewares.in_mem_blacklist_test import MockMessage
+class MockMessage(Message):
+    def __init__(self, lead):
+        self.lead = lead
+
+    def is_voice_message(self):
+        """This method should be implemented by the subclass to check if the message is a voice message"""
+        return False
+    
+    @classmethod
+    def load_from_dict(cls, message_dict: dict):
+        pass
+
 
 
 @pytest.fixture

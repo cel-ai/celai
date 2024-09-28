@@ -1,3 +1,4 @@
+import asyncio
 import json
 from loguru import logger as log
 from cel.assistants.base_assistant import BaseAssistant
@@ -7,9 +8,7 @@ from cel.assistants.macaw.macaw_settings import MacawSettings
 from cel.gateway.model.conversation_lead import ConversationLead
 from cel.prompt.prompt_template import PromptTemplate
 from cel.stores.history.base_history_provider import BaseHistoryProvider
-from cel.stores.history.history_inmemory_provider import InMemoryHistoryProvider
 from cel.stores.state.base_state_provider import BaseChatStateProvider
-from cel.stores.state.state_inmemory_provider import InMemoryStateProvider
 from langchain.load.load import loads, load
 from langchain.load.dump import dumps
 
@@ -40,19 +39,20 @@ class MacawAssistant(BaseAssistant):
     
     def __init__(self, 
                  state: dict = None,
-                 history_store:BaseHistoryProvider=None, 
-                 state_store: BaseChatStateProvider=None,
+                 history_store: BaseHistoryProvider = None, 
+                 state_store: BaseChatStateProvider = None,
                  prompt: PromptTemplate = None,
                  insight_targets: dict = {},
                  settings: MacawSettings = None,
                  llm=None,
                 ):
         
-        super().__init__(prompt=prompt)
+        super().__init__(prompt=prompt, 
+                         history_store=history_store, 
+                         state_store=state_store)
+        
         self.state = state or {}
         self.insight_targets = insight_targets
-        self._state_store = state_store or InMemoryStateProvider()
-        self._history_store = history_store or InMemoryHistoryProvider()
         if settings is None:
             log.warning("No settings provided for Macaw Assistant, using default settings")
         self.settings = settings or MacawSettings()
@@ -88,6 +88,11 @@ class MacawAssistant(BaseAssistant):
     
         except Exception as e:
             log.error(f"Macaw Assistant: error processing new message: {e}")
+            
+        # execute coroutine to get insights in background dont wait for it
+        if self.insight_targets:
+            asyncio.create_task(self.do_insights(lead, history_length=self.settings.insights_history_window_length))
+        
         
 
     async def blend(self, lead: ConversationLead, text: str, history_length: int = None):
@@ -130,7 +135,7 @@ class MacawAssistant(BaseAssistant):
         insights = await process_insights(ctx, targets=mix_targets)
         
         # raise insight event
-        await self.call_event("insigths", lead, data=insights)
+        await self.call_event("insights", lead, data=insights)
         return insights
         
     

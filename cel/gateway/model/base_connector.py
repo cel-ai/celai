@@ -1,5 +1,5 @@
 from fastapi import APIRouter
-from typing import Any, Callable
+from typing import Any
 from .message_gateway_context import MessageGatewayContext
 
 
@@ -27,6 +27,13 @@ class BaseConnector:
         raise NotImplementedError
 
     async def send_text_message(self, lead, text: str, metadata: dict = {}, is_partial: bool = True):
+        raise NotImplementedError
+    
+    # Send an image message from memory
+    async def send_image_message(self, lead, image: Any, filename:str, caption:str = None, metadata: dict = {}, is_partial: bool = True):
+        raise NotImplementedError
+    
+    async def send_image_url_message(self, lead, image_url: str, caption:str = None, metadata: dict = {}, is_partial: bool = True):
         raise NotImplementedError
     
     async def send_typing_action(self, lead):

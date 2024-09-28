@@ -9,6 +9,10 @@ from cel.assistants.common import EventResponse, FunctionDefinition
 from cel.gateway.model.message import Message, ConversationLead
 from cel.prompt.prompt_template import PromptTemplate
 from cel.rag.providers.rag_retriever import RAGRetriever
+from cel.stores.history.base_history_provider import BaseHistoryProvider
+from cel.stores.state.base_state_provider import BaseChatStateProvider
+from cel.stores.history.history_inmemory_provider import InMemoryHistoryProvider
+from cel.stores.state.state_inmemory_provider import InMemoryStateProvider
 
 
 class Events:
@@ -20,12 +24,19 @@ class Events:
 
 class BaseAssistant(ABC):
     
-    def __init__(self, prompt: PromptTemplate = None):
+    def __init__(self, 
+                 prompt: PromptTemplate = None,
+                 history_store: BaseHistoryProvider = None, 
+                 state_store: BaseChatStateProvider = None,                 
+                ):
 
         self.function_handlers = {}
         self.event_handlers = {}
         self.client_commands_handlers = {}
         self.timeout_handlers = {}
+        self._state_store = state_store or InMemoryStateProvider()
+        self._history_store = history_store or InMemoryHistoryProvider()
+        
         self.rag_retriever: RAGRetriever = None
         if prompt:
             assert isinstance(prompt, PromptTemplate), "prompt must be an instance of PromptTemplate"
@@ -136,6 +147,8 @@ class BaseAssistant(ABC):
             ctx = RequestContext(lead=lead, 
                                  message=message,
                                  assistant=self,
+                                 state=self._state_store,
+                                 history=self._history_store,
                                  connector=connector)
             
             # Build args_dict
@@ -145,7 +158,9 @@ class BaseAssistant(ABC):
                 'lead': lead,
                 'message': message,
                 'connector': connector,
-                'data': data
+                'data': data,
+                'state': self._state_store,
+                'history': self._history_store
             }
             
             # Build kwargs using args and args_dict
@@ -176,14 +191,20 @@ class BaseAssistant(ABC):
             func = self.function_handlers[func_name]['func']
             args = inspect.getfullargspec(func).args
 
-            ctx = FunctionContext(lead=lead, connector=connector)
+            ctx = FunctionContext(lead=lead, 
+                                  connector=connector, 
+                                  state=self._state_store, 
+                                  history=self._history_store)
+            
             args_dict = {
                 'session': lead.get_session_id(),
                 'ctx': ctx,
                 'params': params,
                 'lead': lead,
                 'message': None,
-                'connector': connector
+                'connector': connector,
+                'state': self._state_store,
+                'history': self._history_store                
             }
 
             # Build kwargs using args and args_dict

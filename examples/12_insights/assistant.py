@@ -14,7 +14,7 @@ Usage:
 ------
 Configure the required environment variables in a .env file in the root directory of the project.
 The required environment variables are:
-- WEBHOOK_URL: The webhook URL for the assistant, you can use ngrok to create a public URL for your local server.
+- NGROK_AUTH_TOKEN: The ngrok authentication token for creating a public URL for your local server.
 - TELEGRAM_TOKEN: The Telegram bot token for the assistant. You can get this from the BotFather on Telegram.
 - OPENAI_API_KEY: The OpenAI API key for the assistant.
 
@@ -44,9 +44,28 @@ sys.path.append(str(path.parents[1]))
 # Import Cel.ai modules
 from cel.connectors.telegram import TelegramConnector
 from cel.gateway.message_gateway import MessageGateway, StreamMode
-from cel.message_enhancers.smart_message_enhancer_openai import SmartMessageEnhancerOpenAI
 from cel.assistants.macaw.macaw_assistant import MacawAssistant
 from cel.prompt.prompt_template import PromptTemplate
+from cel.middlewares.moderation.openai_mod_endpoint import OpenAIEndpointModerationMiddleware, OpenAIEndpointModerationMiddlewareEvents
+from cel.middlewares.in_mem_blacklist import InMemBlackListMiddleware
+from cel.gateway.request_context import RequestContext
+from cel.assistants.macaw.macaw_settings import MacawSettings
+
+
+
+
+insight_targets = {
+    "last_conversation_topic": "Last conversation topic",
+    "marital_status": "Marital status: single, married, divorced, widowed",
+    "age": "Age: 0-120",
+    "childrens": "Number of children: 0-10",
+    "income": "Income: 0-1000000",
+    "location": "Location: city, country",
+    "job": "Job: occupation",
+    "hobbies": "Hobbies: list of hobbies",
+    "location": "Location: city, country or place where the user is right now",
+}
+
 
 
 # Setup prompt
@@ -59,21 +78,21 @@ prompt_template = PromptTemplate(prompt)
 # or uncomment the next line and replace `your-key` with your OpenAI API key
 # os.environ["OPENAI_API_KEY"] = "your-key.."
 ast = MacawAssistant(
-    prompt=prompt_template
+    prompt=prompt_template,
+    insight_targets=insight_targets
 )
+
+@ast.event('insights')
+def handler_on_message_flagged(session, ctx: RequestContext, data: dict):
+    log.critical(f"Got insights")
+    log.warning(f"Got insights event with data: {data}")
+
 
 # Create the Message Gateway - This component is the core of the assistant
 # It handles the communication between the assistant and the connectors
 gateway = MessageGateway(
-    webhook_url=os.environ.get("WEBHOOK_URL"),
     assistant=ast,
-    host="127.0.0.1", port=5004,
-    message_enhancer=SmartMessageEnhancerOpenAI(),
-    
-    # Activate the delivery rate control to prevent 
-    # the assistant from sending too many messages too quickly
-    # This only works when the connector is in SENTENCE mode
-    # delivery_rate_control=True
+    host="127.0.0.1", port=5004
 )
 
 # For this example, we will use the Telegram connector
@@ -82,13 +101,11 @@ conn = TelegramConnector(
     # Try to set the stream mode to SENTENCE for a more natural conversation
     # SENTENCE mode will send the message to the user every time a sentence is completed
     stream_mode=StreamMode.FULL
-)
-
-
-                         
+)           
 # Register the connector with the gateway
 gateway.register_connector(conn)
 
 # Then start the gateway and begin processing messages
-gateway.run()
+gateway.run(enable_ngrok=True)
+
 

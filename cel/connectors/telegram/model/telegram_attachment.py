@@ -26,18 +26,16 @@ class TelegramAttachment(FileAttachment):
                  height: int = None,
                  file_url: str = None
                 ):
-        super().__init__(title, description, mimeType, metadata, type=type)
+        super().__init__(title, description, mimeType, metadata, type=type, file_url=file_url)
         self.fileSize: int = fileSize
         self.width: int = width
         self.height: int = height
-        self.file_url: str = file_url
     
     def to_dict(self):
         data = super().to_dict()
         data['fileSize'] = self.fileSize
         data['width'] = self.width
         data['height'] = self.height
-        data['file_url'] = self.file_url
         return data
     
     @classmethod
@@ -50,8 +48,7 @@ class TelegramAttachment(FileAttachment):
             metadata=attachment_dict.get("metadata"),
             fileSize=attachment_dict.get("fileSize"),
             width=attachment_dict.get("width"),
-            height=attachment_dict.get("height"),
-            file_url=attachment_dict.get("file_url")
+            height=attachment_dict.get("height")
         )
     
     def __str__(self):

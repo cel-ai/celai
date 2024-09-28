@@ -113,7 +113,7 @@ if __name__ == "__main__":
         price = prices.get(params.get("asset", "BTC"), 0)
         return FunctionContext.response_text(f"The price of {asset} is {price}", request_mode=RequestMode.SINGLE)
     
-    @ast.event('insigths')
+    @ast.event('insights')
     async def handle_insight(session, ctx: RequestContext, data: dict):
         log.warning(f"Got insights event with data: {data}")
     

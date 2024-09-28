@@ -1,3 +1,4 @@
+import asyncio
 import os
 from loguru import logger as log
 from typing import Any, Callable, Dict
@@ -6,6 +7,7 @@ from fastapi import APIRouter, BackgroundTasks
 from loguru import logger as log
 import shortuuid
 import json
+from aiogram.types.input_file import BufferedInputFile, FSInputFile
 from cel.comms.utils import async_run
 from cel.gateway.model.base_connector import BaseConnector
 from cel.gateway.message_gateway import StreamMode
@@ -34,6 +36,7 @@ class TelegramConnector(BaseConnector):
         self.__create_routes(self.router)
         
         self.stream_mode = stream_mode
+        self.user_queues = {}
         
         
         self.report_errors_to_telegram = report_errors_to_telegram or os.getenv("REPORT_ERRORS_TO_TELEGRAM", False)
@@ -41,28 +44,59 @@ class TelegramConnector(BaseConnector):
         assert self.token, "TELEGRAM_TOKEN env var must be set"
         
         
-    def __create_routes(self, router: APIRouter):
-        @router.get("/items/{item_id}")
-        async def read_item(item_id: int, q: str = None):
-            return {"item_id": item_id, "q": q}
-        
-        @router.post(f"/webhook/{self.security_token}")
-        async def telegram_webhook(payload: Dict[Any, Any], background_tasks: BackgroundTasks):
+    def __create_routes(self, router: APIRouter):        
+        @router.post("/webhook/{security_token}")
+        async def telegram_webhook(security_token, payload: Dict[Any, Any], background_tasks: BackgroundTasks):
+            
+            if security_token != self.security_token:
+                raise Exception("Invalid security token")
             # process message in background in order to quickly return 200 OK to telegram 
             # long running tasks should be processed in background
             # telegram timeout policy will retry sending the message if it does 
             # not receive 200 OK in ~30 seconds
             # return anything different than 200 OK will make telegram retry 
-            # sending the message up to 3 times. 
-            background_tasks.add_task(self.__process_message, payload)
+            # sending the message up to 3 times.
+            # background_tasks.add_task(self.__process_message, payload)
+            await self.__enqueue_message(payload)
             return {"status": "ok"}
 
-            
+    async def __process_user_queue(self, chat_id: str):
+        queue = self.user_queues[chat_id]
+        
+        while True:
+            message = await queue.get()
+            try:
+                # Procesa el mensaje (reemplaza esta función por tu lógica)
+                await self.__process_message(message)
+            except Exception as e:
+                log.debug(f"Error processing message for user {chat_id}: {e}")
+            finally:
+                queue.task_done()
+
+            # Si deseas limpiar las colas y tareas cuando estén vacías:
+            if queue.empty():
+                # Opcionalmente, puedes agregar un retraso aquí si esperas más mensajes pronto
+                del self.user_queues[chat_id]
+                log.debug(f"User {chat_id} queue has been cleared")
+                break  # Sal del bucle y termina la tarea
+
+
+    async def __enqueue_message(self, payload: dict):
+        chat_id =  str(payload["message"]["from"]["id"])
+        log.debug(f"Enqueuing message for chat_id: {chat_id}")
+        if chat_id not in self.user_queues:
+            # Crea una nueva cola y tarea para el nuevo usuario
+            self.user_queues[chat_id] = asyncio.Queue()
+            asyncio.create_task(self.__process_user_queue(chat_id))
+        await self.user_queues[chat_id].put(payload)
+
+
     async def __process_message(self, payload: dict):
         try:
             log.debug("Received Telegram webhook")
             log.debug(payload)
             msg = await TelegramMessage.load_from_message(payload, self.token, connector=self)
+            
             
             if self.paused:
                 log.warning("Connector is paused, ignoring message")
@@ -97,6 +131,21 @@ class TelegramConnector(BaseConnector):
         """        
         log.debug(f"Sending message to chat_id: {lead.chat_id}, text: {text}, is_partial: {is_partial}")
         await self.bot.send_message(chat_id=lead.chat_id, text=text)      
+
+
+    async def send_image_message(self, lead: TelegramLead, image: Any, filename: str,  caption:str = None, metadata: dict = {}, is_partial: bool = True):
+        """ Send an image message from memory to the lead. The image must be an image file in memory.
+        The image will be sent to the lead.
+        
+        Args:
+            - lead[TelegramLead]: The lead to send the message
+            - image[Any]: The image file to send
+            - metadata[dict]: Metadata to send with the message
+            - is_partial[bool]: If the message is partial or not
+        """
+        log.debug(f"Sending Image Message to chat_id: {lead.chat_id}, is_partial: {is_partial}")
+        photo = BufferedInputFile(image, filename=filename)
+        await self.bot.send_photo(chat_id=lead.chat_id, photo=photo, caption=caption)
 
 
     async def send_select_message(self, 
