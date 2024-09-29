@@ -28,6 +28,7 @@ import os
 from loguru import logger as log
 # Load .env variables
 from dotenv import load_dotenv
+
 load_dotenv()
 
 
@@ -48,6 +49,8 @@ from cel.assistants.macaw.macaw_assistant import MacawAssistant
 from cel.prompt.prompt_template import PromptTemplate
 from cel.rag.providers.markdown_rag import MarkdownRAG
 from cel.rag.stores.mongo.mongo_store import AtlasStore
+from cel.rag.text2vec.cached_openai import CachedOpenAIEmbedding
+from cel.rag.text2vec.stores.redis_cache_backend import RedisCacheBackend
 
 
 # Setup prompt
@@ -62,7 +65,6 @@ prompt_template = PromptTemplate(prompt)
 # NOTE: Make sure to provide api key in the environment variable `OPENAI_API_KEY`
 # add this line to your .env file: OPENAI_API_KEY=your-key
 # or uncomment the next line and replace `your-key` with your OpenAI API key
-# os.environ["OPENAI_API_KEY"] = "your-key.."
 ast = MacawAssistant(prompt=prompt_template)
 
 
@@ -98,7 +100,11 @@ atlas_store = AtlasStore(
 # Configure the RAG model using the MarkdownRAG provider
 # by default it uses the CachedOpenAIEmbedding for text2vec
 # and ChromaStore for storing the vectors
-mdm = MarkdownRAG("demo", file_path="examples/10_mongo_atlas_rag/qa.md", store=atlas_store)
+#cache = CachedOllamaEmbedding()
+#redisCache
+cache = CachedOpenAIEmbedding(cache_backend=RedisCacheBackend(host='localhost', port=32768, db=0), CACHE_EXPIRE=3600)
+
+mdm = MarkdownRAG("demo", file_path="examples/10_mongo_atlas_rag/qa.md",text2vec=cache)
 # Load from the markdown file, then slice the content, and store it.
 mdm.load()
 # Register the RAG model with the assistant
@@ -108,7 +114,7 @@ ast.set_rag_retrieval(mdm)
 # Create the Message Gateway - This component is the core of the assistant
 # It handles the communication between the assistant and the connectors
 gateway = MessageGateway(
-    webhook_url=os.environ.get("WEBHOOK_URL"),
+    webhook_url="https://ea7b-181-225-64-137.ngrok-free.app",
     assistant=ast,
     host="127.0.0.1", port=5004,
     message_enhancer=SmartMessageEnhancerOpenAI()
@@ -116,7 +122,7 @@ gateway = MessageGateway(
 
 # For this example, we will use the Telegram connector
 conn = TelegramConnector(
-    token=os.environ.get("TELEGRAM_TOKEN"), 
+    token="6977012519:AAGQ70yqPG56fdQQJDrRDiZdYYNsOTyd3iQ", 
     stream_mode=StreamMode.FULL
 )
 # Register the connector with the gateway
