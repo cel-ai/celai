@@ -32,7 +32,7 @@ class DeepgramSTTMiddleware:
             **kwargs
         )
         log.debug(f"DeepgramSTTMiddleware initialized")
-        self.on_fail_message = on_fail_message
+        self.on_fail_message = on_fail_message or "ERROR: User sent an audio message, but it could not be understood."
         
     async def __call__(self, message: Message, connector: BaseConnector, assistant: BaseAssistant):
         assert isinstance(message, Message), "Message must be a Message object"
@@ -49,7 +49,8 @@ class DeepgramSTTMiddleware:
             text = await self.dp.STT(voice.file_url)
             log.debug(f"Message {message.lead.get_session_id()} -> STT: {text}")
             
-            message.text = text
+            # if text is empty or None, set the on_fail_message
+            message.text = text if text else self.on_fail_message
             message.isSTT = True            
             
             return True

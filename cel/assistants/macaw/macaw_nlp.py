@@ -59,10 +59,11 @@ async def process_new_message(ctx: MacawNlpInferenceContext, message: str, on_fu
     )
 
     try:
-        # Tolling
+        # Toolling
         functions = ctx.functions
         if functions is not None and len(functions) > 0:
-            llm_with_tools = llm.bind_tools(map_functions_to_tool_messages(functions))
+            mapfuncs = map_functions_to_tool_messages(functions)
+            llm_with_tools = llm.bind_tools(mapfuncs)
         else:
             llm_with_tools = llm
     except Exception as e:
@@ -78,7 +79,7 @@ async def process_new_message(ctx: MacawNlpInferenceContext, message: str, on_fu
     # Initial state  
     init_state = ctx.init_state or {}
     # Current state
-    current_state = {**(stored_state or {}), **init_state}
+    current_state = {**init_state, **(stored_state or {})}
 
     # Compile prompt
     # ------------------------------------------------------------------------
@@ -99,7 +100,16 @@ async def process_new_message(ctx: MacawNlpInferenceContext, message: str, on_fu
     # Load messages from store
     msgs = await history_store.get_last_messages(
         ctx.lead, 
-        ctx.settings.core_history_window_length) or []
+        ctx.settings.core_history_window_length + 2) or []
+    
+    if msgs and len(msgs) > ctx.settings.core_history_window_length:
+        #  Messages: position 0 is the last message
+        #  Avoid error: 
+        #  Invalid parameter: messages with role 'tool' must be a response to a preceeding message with 'tool_calls'
+        if msgs[0].type == "tool":
+            msgs = msgs[1:]
+            
+    
     # Map to BaseMessages and append to messages
     messages.extend(msgs)
     

@@ -1,5 +1,5 @@
 """
-Hello World AI Assistant Example
+Q&A Assistant with RAG
 ---------------------------------
 
 This is a simple example of an AI Assistant implemented using the Cel.ai framework.
@@ -16,7 +16,6 @@ Configure the required environment variables in a .env file in the root director
 The required environment variables are:
 - WEBHOOK_URL: The webhook URL for the assistant, you can use ngrok to create a public URL for your local server.
 - TELEGRAM_TOKEN: The Telegram bot token for the assistant. You can get this from the BotFather on Telegram.
-- OPENAI_API_KEY: The OpenAI API key for the assistant.
 
 Then run this script to see a basic AI assistant in action.
 
@@ -47,10 +46,16 @@ from cel.gateway.message_gateway import MessageGateway, StreamMode
 from cel.message_enhancers.smart_message_enhancer_openai import SmartMessageEnhancerOpenAI
 from cel.assistants.macaw.macaw_assistant import MacawAssistant
 from cel.prompt.prompt_template import PromptTemplate
+from cel.rag.providers.markdown_rag import MarkdownRAG
+from cel.rag.stores.mongo.mongo_store import AtlasStore
 
 
 # Setup prompt
-prompt = """You are an AI assistant. Called Celia. You can help a user to buy Bitcoins."""
+prompt = "You are a Q&A Assistant. Called Celia.\
+You can help a user to send money.\
+Keep responses short and to the point.\
+Don't use markdown formatting in your responses."
+    
 prompt_template = PromptTemplate(prompt)
 
 # Create the assistant based on the Macaw Assistant 
@@ -58,9 +63,47 @@ prompt_template = PromptTemplate(prompt)
 # add this line to your .env file: OPENAI_API_KEY=your-key
 # or uncomment the next line and replace `your-key` with your OpenAI API key
 # os.environ["OPENAI_API_KEY"] = "your-key.."
-ast = MacawAssistant(
-    prompt=prompt_template
+ast = MacawAssistant(prompt=prompt_template)
+
+
+
+# Configure the MongoDB Atlas Store for storing the RAG model vectors
+# The AtlasStore is a wrapper around the MongoDB Atlas Data API
+# It allows you to store and retrieve vectors from a MongoDB Atlas cluster
+# NOTE: You can create a search index in the Atlas cluster to enable vector search or use the default index
+
+# Example search index definition
+# {
+#   "mappings": {
+#     "dynamic": false,
+#     "fields": {
+#       "plot_embedding": [
+#         {
+#           "dimensions": 1536,
+#           "similarity": "cosine",
+#           "type": "knnVector"
+#         }
+#       ]
+#     }
+#   }
+# }
+atlas_store = AtlasStore(
+    collection_name="qa",
+    db_name="sample_md",
+    index_name="default",
+    mongo_uri=os.getenv("MONGO_URI"),
+    num_dimensions=1536
 )
+
+# Configure the RAG model using the MarkdownRAG provider
+# by default it uses the CachedOpenAIEmbedding for text2vec
+# and ChromaStore for storing the vectors
+mdm = MarkdownRAG("demo", file_path="examples/10_mongo_atlas_rag/qa.md", store=atlas_store)
+# Load from the markdown file, then slice the content, and store it.
+mdm.load()
+# Register the RAG model with the assistant
+ast.set_rag_retrieval(mdm)
+
 
 # Create the Message Gateway - This component is the core of the assistant
 # It handles the communication between the assistant and the connectors
@@ -68,24 +111,14 @@ gateway = MessageGateway(
     webhook_url=os.environ.get("WEBHOOK_URL"),
     assistant=ast,
     host="127.0.0.1", port=5004,
-    message_enhancer=SmartMessageEnhancerOpenAI(),
-    
-    # Activate the delivery rate control to prevent 
-    # the assistant from sending too many messages too quickly
-    # This only works when the connector is in SENTENCE mode
-    # delivery_rate_control=True
+    message_enhancer=SmartMessageEnhancerOpenAI()
 )
 
 # For this example, we will use the Telegram connector
 conn = TelegramConnector(
     token=os.environ.get("TELEGRAM_TOKEN"), 
-    # Try to set the stream mode to SENTENCE for a more natural conversation
-    # SENTENCE mode will send the message to the user every time a sentence is completed
     stream_mode=StreamMode.FULL
 )
-
-
-                         
 # Register the connector with the gateway
 gateway.register_connector(conn)
 

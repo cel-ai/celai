@@ -16,7 +16,7 @@ texts=[
 @pytest.fixture
 def client():
     text2vec = CachedOllamaEmbedding()
-    return ChromaStore(text2vec, collection_name='test_collection')
+    return ChromaStore(text2vec, collection_name='test_ollama_collection')
 
 
     

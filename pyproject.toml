@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "celai"
-version = "0.1.2"
+version = "0.1.17"
 description = ""
 authors = ["Alex Martin <alejamp@gmail.com>"]
 readme = "README.md"
@@ -48,6 +48,9 @@ langchain-community = ">=0.2.1"
 langchain-openai = ">=0.1.8"
 aiogram = ">=3.6.0"
 ollama = ">=0.3.1"
+qrcode = ">=7.4.2"
+pymongo = ">=4.8.0"
+together = ">=1.2.12"
 
 [tool.poetry.group.dev.dependencies]
 pytest = ">=8.2.0"

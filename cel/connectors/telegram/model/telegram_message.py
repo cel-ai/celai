@@ -30,6 +30,15 @@ class TelegramMessage(Message):
         msg = message_dict.get("message")
         # get text from message or caption if it is a media message
         text = msg.get("text") or msg.get("caption")
+        
+        # if text begins with /start, it is a command
+        if text and text.startswith("/start"):
+            # decode the arguments
+            args = text.split(" ")[1:]
+            # decode string from base64
+            import base64
+            text = base64.b64decode(args[0]).decode("utf-8")
+        
         date = msg.get("date")
         metadata = {'raw': msg}
         lead = TelegramLead.from_telegram_message(msg, connector=connector)

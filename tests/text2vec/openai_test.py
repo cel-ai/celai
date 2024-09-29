@@ -2,7 +2,6 @@ import pytest
 from cel.rag.stores.chroma.chroma_store import ChromaStore
 from cel.rag.text2vec.cached_openai import CachedOpenAIEmbedding
 import dotenv
-
 dotenv.load_dotenv()
 
 
@@ -17,7 +16,7 @@ texts=[
 @pytest.fixture
 def client():
     text2vec = CachedOpenAIEmbedding()
-    return ChromaStore(text2vec, collection_name='test_collection')
+    return ChromaStore(text2vec, collection_name='test_openai_collection')
 
 
     

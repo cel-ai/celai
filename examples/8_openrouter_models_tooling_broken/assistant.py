@@ -75,7 +75,7 @@ Smoothies can be customized with the following extra ingredients:\n\
     - Fruits: Strawberry, Banana, Mango, Pineapple, Blueberry\n\
     - Nuts\n\
     - Seeds\n"
-    
+
 prompt_template = PromptTemplate(prompt)
 
 # Create the assistant based on the Macaw Assistant 
@@ -121,9 +121,7 @@ async def handle_create_order(session, params, ctx: FunctionContext):
 gateway = MessageGateway(
     webhook_url=os.environ.get("WEBHOOK_URL"),
     assistant=ast,
-    host="127.0.0.1", port=5004,
-    message_enhancer=SmartMessageEnhancerOpenAI(),
-    delivery_rate_control=False
+    host="127.0.0.1", port=5004
 )
 
 # For this example, we will use the Telegram connector
