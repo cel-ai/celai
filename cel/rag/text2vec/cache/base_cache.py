@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 
-class CacheBackend(ABC):
+class BaseCache(ABC):
     @abstractmethod
     def memoize(self, typed: bool, expire: int, tag: str):
         pass

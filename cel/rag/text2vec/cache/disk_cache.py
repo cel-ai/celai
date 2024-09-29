@@ -1,7 +1,7 @@
 from diskcache import Cache
-from .cache_backend import CacheBackend
+from .base_cache import BaseCache
 
-class DiskCacheBackend(CacheBackend):
+class DiskCache(BaseCache):
     def __init__(self, cache_dir: str):
         self.cache = Cache(cache_dir)
 

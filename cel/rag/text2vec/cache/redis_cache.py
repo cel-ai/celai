@@ -1,11 +1,11 @@
-import redis
-from .cache_backend import CacheBackend
+from redis import Redis
+from .base_cache import BaseCache
 
-class RedisCacheBackend(CacheBackend):
-    def __init__(self, host: str, port: int, db: int):
-        self.client = redis.StrictRedis(host=host, port=port, db=db)
+class RedisCache(BaseCache):
+    def __init__(self, redis: str | Redis = None):
+        self.client = redis if isinstance(redis, Redis) else Redis.from_url(redis or 'redis://localhost:6379/0')
 
-    def memoize(self, typed: bool, expire: int, tag: str):
+    def memoize(self, typed: bool, tag: str, expire: int = None):
         def decorator(func):
             def wrapper(*args, **kwargs):
                 key = f"{tag}:{args}:{kwargs}" if typed else f"{tag}:{args}"
@@ -13,7 +13,7 @@ class RedisCacheBackend(CacheBackend):
                 if cached_result:
                     return eval(cached_result)
                 result = func(*args, **kwargs)
-                if result is not None:
+                if result is not None and expire:
                     self.client.setex(key, expire, str(result))
                 return result
             return wrapper

@@ -1,6 +1,5 @@
-from .stores.cache_backend import CacheBackend
-from .stores.disk_cache_backend import DiskCacheBackend
-from .stores.redis_cache_backend import RedisCacheBackend
+from .cache.base_cache import BaseCache
+from .cache.disk_cache import DiskCache
 from .utils import Embedding, Text2VectorProvider
 
 try:
@@ -30,9 +29,9 @@ class CachedOllamaEmbedding(Text2VectorProvider):
         The cache backend to use. Default is DiskCacheBackend.
     """
     
-    def __init__(self, model: str = "mxbai-embed-large", cache_backend: CacheBackend = None,CACHE_EXPIRE=86400):
+    def __init__(self, model: str = "mxbai-embed-large", cache_backend: BaseCache = None, CACHE_EXPIRE=86400):
         self.model = model
-        self.cache_backend = cache_backend or DiskCacheBackend(cache_dir='/tmp/diskcache')
+        self.cache_backend = cache_backend or DiskCache(cache_dir='/tmp/diskcache')
         self.cache_expire = CACHE_EXPIRE
         self.cache_tag= 'ollama'
 

@@ -25,11 +25,14 @@ class Events:
 class BaseAssistant(ABC):
     
     def __init__(self, 
+                 name: str = None,
+                 description: str = None,
                  prompt: PromptTemplate = None,
                  history_store: BaseHistoryProvider = None, 
                  state_store: BaseChatStateProvider = None,                 
                 ):
-
+        self.name = name
+        self.description = description
         self.function_handlers = {}
         self.event_handlers = {}
         self.client_commands_handlers = {}

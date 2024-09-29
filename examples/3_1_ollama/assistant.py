@@ -63,7 +63,7 @@ from cel.assistants.function_response import RequestMode
 from cel.assistants.common import Param
 from cel.assistants.macaw.macaw_settings import MacawSettings
 from cel.rag.text2vec.cached_ollama import CachedOllamaEmbedding
-from cel.rag.text2vec.stores.redis_cache_backend import RedisCacheBackend
+from cel.rag.text2vec.cache.redis_cache import RedisCache
 
 from utils import get_crypto_price
 from langchain_ollama import ChatOllama
@@ -110,7 +110,7 @@ ast = MacawAssistant(
 #diskcache
 cache = CachedOllamaEmbedding()
 #redisCache
-#cache = CachedOllamaEmbedding(cache_backend=RedisCacheBackend(host='localhost', port=32768, db=0), CACHE_EXPIRE=3600)
+# cache = CachedOllamaEmbedding(cache_backend=RedisCache(), CACHE_EXPIRE=3600)
 mdm = MarkdownRAG(
     "demo", 
     file_path="examples/3_1_ollama/qa.md", 
@@ -151,9 +151,8 @@ async def get_cryptocurrency_price(session, params, ctx: FunctionContext):
 
 # Create the Message Gateway - This component is the core of the assistant
 # It handles the communication between the assistant and the connectors
-webhook_url = "https://ea7b-181-225-64-137.ngrok-free.app"
 gateway = MessageGateway(
-    webhook_url= webhook_url,
+    webhook_url= os.getenv("WEBHOOK_URL"),
     assistant=ast,
     host="127.0.0.1", port=5004,
     # message_enhancer=SmartMessageEnhancerOpenAI()
@@ -161,7 +160,7 @@ gateway = MessageGateway(
 
 # For this example, we will use the Telegram connector
 conn = TelegramConnector(
-    token="6977012519:AAGQ70yqPG56fdQQJDrRDiZdYYNsOTyd3iQ", 
+    token=os.getenv("TELEGRAM_TOKEN"),
     stream_mode=StreamMode.FULL
 )
 # Register the connector with the gateway

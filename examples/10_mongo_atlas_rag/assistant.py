@@ -50,7 +50,7 @@ from cel.prompt.prompt_template import PromptTemplate
 from cel.rag.providers.markdown_rag import MarkdownRAG
 from cel.rag.stores.mongo.mongo_store import AtlasStore
 from cel.rag.text2vec.cached_openai import CachedOpenAIEmbedding
-from cel.rag.text2vec.stores.redis_cache_backend import RedisCacheBackend
+from cel.rag.text2vec.cache.redis_cache import RedisCache
 
 
 # Setup prompt
@@ -102,7 +102,7 @@ atlas_store = AtlasStore(
 # and ChromaStore for storing the vectors
 #cache = CachedOllamaEmbedding()
 #redisCache
-cache = CachedOpenAIEmbedding(cache_backend=RedisCacheBackend(host='localhost', port=32768, db=0), CACHE_EXPIRE=3600)
+cache = CachedOpenAIEmbedding(cache_backend=RedisCache(), CACHE_EXPIRE=3600)
 
 mdm = MarkdownRAG("demo", file_path="examples/10_mongo_atlas_rag/qa.md",text2vec=cache)
 # Load from the markdown file, then slice the content, and store it.

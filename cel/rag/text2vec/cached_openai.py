@@ -4,9 +4,8 @@ import time
 from typing import cast
 from diskcache import Cache
 from cel.cache import get_cache
-from .stores.cache_backend import CacheBackend
-from .stores.disk_cache_backend import DiskCacheBackend
-from .stores.redis_cache_backend import RedisCacheBackend
+from .cache.base_cache import BaseCache
+from .cache.disk_cache import DiskCache
 from .utils import Embedding, Text2VectorProvider
 
 try:
@@ -38,10 +37,10 @@ class CachedOpenAIEmbedding(Text2VectorProvider):
         The cache expiration time in milliseconds. Default is 12 hours (43200000 ms).
     """
     
-    def __init__(self, api_key: str = None, model: str = "text-embedding-3-small", cache_backend: CacheBackend = None, max_retries: int = 5, CACHE_EXPIRE: int = 43200000):
+    def __init__(self, api_key: str = None, model: str = "text-embedding-3-small", cache_backend: BaseCache = None, max_retries: int = 5, CACHE_EXPIRE: int = 43200000):
         self.api_key = api_key or os.getenv("OPENAI_API_KEY")
         self.model = model
-        self.cache_backend = cache_backend or DiskCacheBackend(cache_dir='/tmp/diskcache')
+        self.cache_backend = cache_backend or DiskCache(cache_dir='/tmp/diskcache')
         self.max_retries = max_retries
         self.cache_expire = CACHE_EXPIRE
         self.cache_tag = 'openai_embedding'
