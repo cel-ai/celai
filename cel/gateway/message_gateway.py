@@ -1,5 +1,6 @@
 import asyncio
 from typing import Callable
+from langsmith import tracing_context
 from loguru import logger as log
 from fastapi import APIRouter, Depends, FastAPI, HTTPException, Request, Response
 from loguru import logger as log
@@ -337,58 +338,77 @@ class MessageGateway:
         
         await connector.send_typing_action(lead)
         if self.assistant:
-            stream = self.assistant.new_message(message.lead, message.text, {})
-            content = ''
-            
-            if mode == StreamMode.SENTENCE:
-                async for sentence in streaming_sentence_detector_async(stream): 
-                    assert isinstance(sentence, StreamContentChunk), "stream must be a StreamChunk"
-                    content += sentence.content
+
+            # Langsmith Tracing 
+            from langsmith.run_trees import RunTree
+            rt = RunTree(name="Chat Message")
+            try:
+                rt.add_metadata({
+                    "session_id": lead.get_session_id(),
+                })
+                rt.add_tags(["message", lead.connector_name])
+                
+                with tracing_context(parent=rt):
+                    stream = self.assistant.new_message(message.lead, message.text, {})
+                    content = ''
                     
-                    if capture_repsonse:
-                        yield sentence
-                        # pass
-                    else:
-                        # Send the sentence to the connector
-                        await self.dispatch_outgoing_genai_message(message.lead, 
-                                                            text=sentence.content, 
-                                                            is_partial=sentence.is_partial)
+                    if mode == StreamMode.SENTENCE:
+                        rt.add_tags("sentence")
+                        async for sentence in streaming_sentence_detector_async(stream): 
+                            assert isinstance(sentence, StreamContentChunk), "stream must be a StreamChunk"
+                            content += sentence.content
+                            
+                            if capture_repsonse:
+                                yield sentence
+                                # pass
+                            else:
+                                # Send the sentence to the connector
+                                await self.dispatch_outgoing_genai_message(message.lead, 
+                                                                    text=sentence.content, 
+                                                                    is_partial=sentence.is_partial)
+                                await connector.send_typing_action(message.lead)
+                                # Time delation based on the length of the sentence
+                                if self.delivery_rate_control:
+                                    length = len(sentence.content)
+                                    wait_time = length / self.delivery_rate_control_ratio
+                                    await asyncio.sleep(wait_time)
+
+
+                    if mode == StreamMode.DIRECT:
+                        rt.add_tags("direct")
+                        async for chunk in stream:
+                            assert isinstance(chunk, StreamContentChunk), "stream must be a StreamChunk"
+                            content += chunk.content
+                            
+                            if capture_repsonse:
+                                yield chunk
+                                # pass
+                            else:
+                                await self.dispatch_outgoing_genai_message(message.lead, text=chunk.content, is_partial=chunk.is_partial)
+                                await connector.send_typing_action(message.lead)
+
+                    
+                    if mode == StreamMode.FULL:
+                        rt.add_tags("full")
                         await connector.send_typing_action(message.lead)
-                        # Time delation based on the length of the sentence
-                        if self.delivery_rate_control:
-                            length = len(sentence.content)
-                            wait_time = length / self.delivery_rate_control_ratio
-                            await asyncio.sleep(wait_time)
-
-
-            if mode == StreamMode.DIRECT:
-                async for chunk in stream:
-                    assert isinstance(chunk, StreamContentChunk), "stream must be a StreamChunk"
-                    content += chunk.content
+                        async for chunk in stream:
+                            assert isinstance(chunk, StreamContentChunk), "stream must be a StreamChunk"
+                            content += chunk.content
+                            
+                            if capture_repsonse:
+                                yield chunk.content
+                                # pass
+                            else:
+                                await self.dispatch_outgoing_genai_message(message.lead, text=content, is_partial=False)
+                            
+                    log.debug(f"Assistant response: {content}")
                     
-                    if capture_repsonse:
-                        yield chunk
-                        # pass
-                    else:
-                        await self.dispatch_outgoing_genai_message(message.lead, text=chunk.content, is_partial=chunk.is_partial)
-                        await connector.send_typing_action(message.lead)
-
-            
-            if mode == StreamMode.FULL:
-                await connector.send_typing_action(message.lead)
-                async for chunk in stream:
-                    assert isinstance(chunk, StreamContentChunk), "stream must be a StreamChunk"
-                    content += chunk.content
-                    
-                    if capture_repsonse:
-                        yield chunk.content
-                        # pass
-                    else:
-                        await self.dispatch_outgoing_genai_message(message.lead, text=content, is_partial=False)
-                
-                
-                
-            log.debug(f"Assistant response: {content}")
+                    rt.end()
+                    rt.post()
+            except Exception as e:
+                rt.end(error=str(e))
+                rt.post()
+                raise e
         else: 
             log.critical("No assistant available")
             if capture_repsonse:
