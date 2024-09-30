@@ -11,7 +11,7 @@ class PromptTemplate:
     def __init__(self, prompt: str):
         self.prompt = prompt
 
-    async def compile(self, state: dict, lead: ConversationLead):
+    async def compile(self, state: dict, lead: ConversationLead, message: str) -> str:
         assert isinstance(state, dict), "PromptTemplate: state must be a dictionary"
         
         async def compile_value(key):
@@ -41,7 +41,7 @@ class PromptTemplate:
 
     async def call_function(self, 
                             func: callable, 
-                            message: Message = None,
+                            message: str = None,
                             lead: ConversationLead = None) -> str:
         
         args_dict = {
@@ -64,4 +64,4 @@ class PromptTemplate:
         else:
             response = func(**kwargs)
 
-        return json.dumps(response)
+        return json.dumps(response) if isinstance(response, dict) else str(response)

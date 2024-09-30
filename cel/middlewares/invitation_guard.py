@@ -33,6 +33,7 @@ class InvitationEntry(ABC):
     expires_at: int = 0
     used: bool = False
     name: str = None
+    metadata: dict = None
 
 class InvitationGuardMiddlewareEvents:
     new_conversation = "new_conversation"
@@ -124,7 +125,10 @@ class InvitationGuardMiddleware(ABC):
         async def echo():
             return {"status": "ok"}
         
-        @app.get(prefix + "/invitations/{code}", response_model=InvitationEntry, summary="Get invitation", description="This endpoint allows you to get an invitation by code.")
+        @app.get(prefix + "/invitations/{code}", 
+                 response_model=InvitationEntry, 
+                 summary="Get invitation", 
+                 description="This endpoint allows you to get an invitation by code.")
         async def get_invitation(code: str):
             """
             Get invitation by code
@@ -136,7 +140,10 @@ class InvitationGuardMiddleware(ABC):
             
             return entry 
         
-        @app.post(prefix + "/invitations", response_model=InvitationResponse, summary="Create a new invitation", description="This endpoint allows you to create a new invitation.")
+        @app.post(prefix + "/invitations", 
+                  response_model=InvitationResponse, 
+                  summary="Create a new invitation", 
+                  description="This endpoint allows you to create a new invitation.")
         async def create_invitation(request: InvitationRequest):
             """
             Create a new invitation
@@ -152,7 +159,10 @@ class InvitationGuardMiddleware(ABC):
                 "invite_code": code
             }
         
-        @app.delete(prefix + "/invitations/{code}", response_model=InvitationResponse, summary="Revoke an invitation", description="This endpoint allows you to revoke an invitation.")
+        @app.delete(prefix + "/invitations/{code}", 
+                    response_model=InvitationResponse, 
+                    summary="Revoke an invitation", 
+                    description="This endpoint allows you to revoke an invitation.")
         async def revoke_invitation(code: str):
             """
             Revoke an invitation by code
@@ -315,6 +325,7 @@ class InvitationGuardMiddleware(ABC):
                                    created_at=entry.get('created_at'), 
                                    expires_at=entry.get('expires_at'),
                                    used=entry.get('used'), 
+                                   metadata=entry.get('metadata'),
                                    name=entry.get('name'))
         return None
     

@@ -45,11 +45,15 @@ class MacawAssistant(BaseAssistant):
                  insight_targets: dict = {},
                  settings: MacawSettings = None,
                  llm=None,
+                 name: str = "Macaw",
+                 description: str = "Default Assistant"
                 ):
         
         super().__init__(prompt=prompt, 
                          history_store=history_store, 
-                         state_store=state_store)
+                         state_store=state_store,
+                         name=name,
+                         description=description)
         
         self.state = state or {}
         self.insight_targets = insight_targets
@@ -205,4 +209,10 @@ class MacawAssistant(BaseAssistant):
             
             
             
-            
+    def to_json(self):
+        return {
+            "state": self.state,
+            "insight_targets": self.insight_targets,
+            "settings": self.settings,
+            "prompt": self.prompt
+        }

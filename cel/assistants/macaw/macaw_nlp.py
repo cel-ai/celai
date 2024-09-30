@@ -83,7 +83,7 @@ async def process_new_message(ctx: MacawNlpInferenceContext, message: str, on_fu
 
     # Compile prompt
     # ------------------------------------------------------------------------
-    prompt = await ctx.prompt.compile(current_state, ctx.lead)
+    prompt = await ctx.prompt.compile(current_state, ctx.lead, message=message)
     
     # RAG
     # ------------------------------------------------------------------------

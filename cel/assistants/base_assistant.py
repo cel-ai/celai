@@ -28,8 +28,8 @@ class BaseAssistant(ABC):
                  name: str = None,
                  description: str = None,
                  prompt: PromptTemplate = None,
-                 history_store: BaseHistoryProvider = None, 
-                 state_store: BaseChatStateProvider = None,                 
+                 history_store: BaseHistoryProvider = None,
+                 state_store: BaseChatStateProvider = None,
                 ):
         self.name = name
         self.description = description
@@ -45,7 +45,15 @@ class BaseAssistant(ABC):
             assert isinstance(prompt, PromptTemplate), "prompt must be an instance of PromptTemplate"
         self.prompt = prompt or PromptTemplate('')
 
-            
+    def set_history_store(self, history_store: BaseHistoryProvider):
+        # check type
+        assert isinstance(history_store, BaseHistoryProvider), "history_store must be an instance of BaseHistoryProvider"
+        self._history_store = history_store
+        
+    def set_state_store(self, state_store: BaseChatStateProvider):
+        # check type
+        assert isinstance(state_store, BaseChatStateProvider), "state_store must be an instance of BaseChatStateProvider"
+        self._state_store = state_store
             
     def set_rag_retrieval(self, rag_retrieval: RAGRetriever):
         # check type
@@ -248,4 +256,13 @@ class BaseAssistant(ABC):
     def get_events(self):
         return self.event_handlers
     
-        
+    # str method
+    def __str__(self):
+        return f"{self.name}: {self.description}"
+    
+    # json dumps method
+    def to_json(self):
+        return {
+            'name': self.name,
+            'description': self.description
+        }
