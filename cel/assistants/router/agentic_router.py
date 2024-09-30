@@ -17,7 +17,52 @@ from cel.stores.state.state_inmemory_provider import InMemoryStateProvider
 
 
 class AgenticRouter(BaseAssistant):
-    
+    """
+    The AgenticRouter class provides multi-assistant support for Cel.ai by routing incoming 
+    messages to the most suitable assistant based on user intent. 
+    It leverages a GPT-4o-based agentic router to determine the best assistant for handling 
+    the user's request. To accurately detect user intent, the router considers a window 
+    of messages from the history to provide context.
+
+    If the router cannot correctly determine the user's intent, such as in the case 
+    of the first message, it defaults to routing the message to the default assistant.
+
+    It is important to note that this multi-assistant architecture uses shared history 
+    and state storages to avoid inconsistencies and potential issues.
+
+    Attributes:
+        assistants (list[BaseAssistant]): A list of assistant instances to route messages to.
+        history_store (BaseHistoryProvider): The provider for storing message history. Defaults to InMemoryHistoryProvider if not provided.
+        state_store (BaseChatStateProvider): The provider for storing chat state. Defaults to InMemoryStateProvider if not provided.
+        history_length (int): The number of historical messages to consider for context. Defaults to 5.
+        llm: The language model used for intent detection. Defaults to None.
+        default_assistant (int): The index of the default assistant to use when intent cannot be determined. Defaults to 0.
+        
+    Example:
+    ```python
+        # Create a list of assistants
+        assistants = [build_balance_agent(), build_transfer_agent()]
+        # Instantiate the Agentic Router
+        ast = AgenticRouter(assistants=assistants) 
+    ```
+
+    Methods:
+        infer_best_assistant(input_text: str) -> BaseAssistant:
+            Determines the best assistant to handle the user's request based on the input text.
+
+        build_dialog(lead: ConversationLead, text: str) -> list[dict]:
+            Builds a dialog to be used by the agent to get the most suitable assistant to process the message.
+
+        format_dialog_to_plain_text(dialog: list[dict]) -> str:
+            Formats the dialog into plain text.
+
+        get_assistant(lead: ConversationLead, text: str) -> BaseAssistant:
+            Gets the assistant that best fits the input text.
+
+        new_message(lead: ConversationLead, message: str, local_state: dict = {}) -> AsyncGenerator:
+            Handles a new message by routing it to the appropriate assistant and yielding the response.
+    """
+        
     def __init__(self, 
                  assistants: list[BaseAssistant], 
                  history_store: BaseHistoryProvider = None,
@@ -25,6 +70,21 @@ class AgenticRouter(BaseAssistant):
                  history_length: int = 5,
                  llm=None,
                  default_assistant: int = 0):
+        """
+        Initializes the AgenticRouter instance.
+
+        Args:
+            assistants (list[BaseAssistant]): A list of assistant instances to route messages to.
+            history_store (BaseHistoryProvider, optional): The provider for storing message history. Defaults to InMemoryHistoryProvider if not provided.
+            state_store (BaseChatStateProvider, optional): The provider for storing chat state. Defaults to InMemoryStateProvider if not provided.
+            history_length (int, optional): The number of historical messages to consider for context. Defaults to 5.
+            llm (optional): The LLM model used for intent detection. Defaults to None.
+            default_assistant (int, optional): The index of the default assistant to use when intent cannot be determined. Defaults to 0.
+
+        Raises:
+            AssertionError: If no assistants are provided or if the default assistant index is out of range.
+        """
+        
         
         super().__init__(name="Router Assistant", description="This assistant routes messages to other assistants")
         log.debug(f"Router Assistant created with {len(assistants)} assistants")
