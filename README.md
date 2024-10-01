@@ -42,7 +42,7 @@ Off the shelf, Cel.ai provides a powerful tools such as:
 
 pip install from github:
 ```bash
-pip install git+https://github.com/cel-ai/celai
+pip install celai
 ```
 ## Getting Started
 
