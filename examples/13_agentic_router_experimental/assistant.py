@@ -1,6 +1,6 @@
 """
-Smoothy Inc Clerk Assistant with RAG
--------------------------------------
+Cel.ai Example: Agentic Router Experimental
+--------------------------------------------------
 
 This is a simple example of an AI Assistant implemented using the Cel.ai framework.
 It serves as a basic demonstration of how to get started with Cel.ai for creating intelligent assistants.

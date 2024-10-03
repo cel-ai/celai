@@ -13,13 +13,14 @@ class PromptTemplate:
 
     async def compile(self, state: dict, lead: ConversationLead, message: str) -> str:
         assert isinstance(state, dict), "PromptTemplate: state must be a dictionary"
+        assert isinstance(lead, ConversationLead), "PromptTemplate: lead must be a ConversationLead instance"
         
         async def compile_value(key):
             var_name = key
             if var_name in state:
                 value = state[var_name]
                 if callable(value):
-                    return { key: await self.call_function(value, lead=lead) }
+                    return { key: await self.call_function(value, lead=lead, current_state=state) }
                 else:
                     return { key: str(value) }
             else:
@@ -42,12 +43,14 @@ class PromptTemplate:
     async def call_function(self, 
                             func: callable, 
                             message: str = None,
+                            current_state: dict = None,
                             lead: ConversationLead = None) -> str:
         
         args_dict = {
             'lead': lead,
             'session_id': lead.get_session_id(),
-            'message': message
+            'message': message,
+            'state': current_state
         }
 
         args = inspect.getfullargspec(func).args
