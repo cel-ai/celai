@@ -16,7 +16,7 @@ Don't waste time building on top of hosted platforms that limit your control and
 Supported Connectors:
 - WhatsApp
 - Telegram
-- VAPI.com
+- VAPI.ai
 - Chatwoot
 
 Off the shelf, Cel.ai provides a powerful tools such as:
