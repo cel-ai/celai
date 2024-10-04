@@ -243,7 +243,7 @@ class InvitationGuardMiddleware(ABC):
                 await self.set_entry(message.lead.get_session_id(), invite_code=code)
                 await connector.send_text_message(message.lead, "Backdoor code accepted")
                 message.text = message.text.replace(code, "")
-                await assistant.call_event(self.events.invitation_accepted, message.lead, message, connector)
+                await assistant.call_event(self.events.invitation_accepted, message.lead, message, connector, data=entry)
                 return True
             
             # Reject cases
@@ -272,7 +272,7 @@ class InvitationGuardMiddleware(ABC):
             await self.claim_invitation(code)
             await connector.send_text_message(message.lead, "Code accepted")      
             message.text = message.text.replace(code, "")      
-            await assistant.call_event(self.events.invitation_accepted, message.lead, message, connector)
+            await assistant.call_event(self.events.invitation_accepted, message.lead, message, connector, data=entry)
             
             return True
         return True
