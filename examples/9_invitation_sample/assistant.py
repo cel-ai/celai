@@ -53,10 +53,9 @@ sys.path.append(str(path.parents[1]))
 # Import Cel.ai modules
 from cel.connectors.telegram import TelegramConnector
 from cel.gateway.message_gateway import MessageGateway, StreamMode
-from cel.message_enhancers.smart_message_enhancer_openai import SmartMessageEnhancerOpenAI
 from cel.assistants.macaw.macaw_assistant import MacawAssistant
 from cel.prompt.prompt_template import PromptTemplate
-from cel.middlewares.invitation_guard import InvitationGuardMiddleware, InvitationGuardMiddlewareEvents
+from cel.middlewares.invitation_guard import InvitationGuardMiddleware
 from cel.gateway.request_context import RequestContext
 
 
