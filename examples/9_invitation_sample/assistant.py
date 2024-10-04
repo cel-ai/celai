@@ -27,6 +27,7 @@ Note:
 Please ensure you have the Cel.ai framework installed in your Python environment prior to running this script.
 """
 # LOAD ENV VARIABLES
+import asyncio
 import os
 from loguru import logger as log
 # Load .env variables
@@ -52,6 +53,21 @@ from cel.prompt.prompt_template import PromptTemplate
 from cel.middlewares.invitation_guard import InvitationGuardMiddleware
 from cel.gateway.request_context import RequestContext
 
+
+# Create Invitation Midlleware
+guard = InvitationGuardMiddleware(
+    # For development purposes, you can set the master key and backdoor invite
+    # master key will allows you to login as an admin and gain 
+    # prmissions to run client commands.
+    master_key="123456",
+    # Backdoor invite will allow you to bypass the invitation 
+    # process and gain access to the assistant
+    backdoor_invite_code="#QWERTY",
+    telegram_bot_name="lola_lionel_bot",
+    allow_only_invited=True
+)
+
+
 # Setup prompt
 prompt = """You are an AI assistant. Called Celia. 
 Keep answers short and to the point.
@@ -66,11 +82,6 @@ prompt_template = PromptTemplate(prompt)
 ast = MacawAssistant(
     prompt=prompt_template
 )
-
-@ast.event("")
-async def handle_insight(session, ctx: RequestContext, data: dict):
-    log.warning(f"Got insights event with data: {data}")
-
 
 
 # Create the Message Gateway - This component is the core of the assistant
@@ -95,18 +106,7 @@ conn = TelegramConnector(
     stream_mode=StreamMode.FULL
 )
 
-# Register Invitation Midlleware
-guard = InvitationGuardMiddleware(
-    # For development purposes, you can set the master key and backdoor invite
-    # master key will allows you to login as an admin and gain 
-    # prmissions to run client commands.
-    master_key="123456",
-    # Backdoor invite will allow you to bypass the invitation 
-    # process and gain access to the assistant
-    backdoor_invite_code="#QWERTY",
-    telegram_bot_name="lola_lionel_bot",
-    allow_only_invited=True
-)
+# Register invitation guard middleware
 gateway.register_middleware(guard)
 
 # Register the connector with the gateway

@@ -100,6 +100,7 @@ class InvitationGuardMiddleware(ABC):
         self.telegram_bot_name = telegram_bot_name
         self.whatsapp_phone_number = whatsapp_phone_number
         
+        
     
     # Setup the middleware with the FastAPI application    
     def setup(self, app):
@@ -173,45 +174,49 @@ class InvitationGuardMiddleware(ABC):
 
     # MAIN METHOD - Handle the message
     async def __call__(self, message: Message, connector: BaseConnector, assistant: BaseAssistant):
-        assert isinstance(message, Message), "Message must be a Message object"
-        assert isinstance(connector, BaseConnector), "Connector must be a BaseConnector object"
-        
-        if not await self.__handle_invitation_code(message, connector, assistant):
-            return False        
-        
-        entry = await self.get_auth_entry(message.lead.get_session_id())
-        
-        # add last request time in message
-        if entry:
-            assert isinstance(entry, AuthEntry), "Entry must be an AuthEntry object"
+        try:
+            assert isinstance(message, Message), "Message must be a Message object"
+            assert isinstance(connector, BaseConnector), "Connector must be a BaseConnector object"
             
-            if self.allow_only_invited and entry.invite_code is None:
-                log.critical(f"User {message.lead.get_session_id()} is not invited")
+            if not await self.__handle_invitation_code(message, connector, assistant):
+                return False        
+            
+            entry = await self.get_auth_entry(message.lead.get_session_id())
+            
+            # add last request time in message
+            if entry:
+                assert isinstance(entry, AuthEntry), "Entry must be an AuthEntry object"
+                
+                if self.allow_only_invited and entry.invite_code is None:
+                    log.critical(f"User {message.lead.get_session_id()} is not invited")
+                    await connector.send_text_message(message.lead, self.reject_message)
+                    return False
+                
+                time_since_last_request = time.time() - (entry.last_request or 0)
+                message.metadata = message.metadata or {}
+                message.metadata['time_since_last_request'] = time_since_last_request
+                await self.set_entry(message.lead.get_session_id(), 
+                                    client_cmd_enabled=entry.client_cmd_enabled, 
+                                    metadata=message.metadata,
+                                    invite_code=entry.invite_code)
+            else:
+                await self.set_entry(message.lead.get_session_id(), 
+                                    client_cmd_enabled=False, 
+                                    metadata={})
                 await connector.send_text_message(message.lead, self.reject_message)
+                await assistant.call_event(self.events.new_conversation, message.lead, message, connector)
+                return False
+                
+            if not await self.__handle_login_command(message, connector, entry, assistant):
                 return False
             
-            time_since_last_request = time.time() - (entry.last_request or 0)
-            message.metadata = message.metadata or {}
-            message.metadata['time_since_last_request'] = time_since_last_request
-            await self.set_entry(message.lead.get_session_id(), 
-                                 client_cmd_enabled=entry.client_cmd_enabled, 
-                                 metadata=message.metadata,
-                                 invite_code=entry.invite_code)
-        else:
-            await self.set_entry(message.lead.get_session_id(), 
-                                 client_cmd_enabled=False, 
-                                 metadata={})
-            await assistant.call_event(self.events.new_conversation, message.lead, message, connector)
+            if not await self.__secure_client_commands(message, connector, entry):
+                return False
             
-        if not await self.__handle_login_command(message, connector, entry, assistant):
+            return True
+        except Exception as e:
+            log.error(f"Error in InvitationGuardMiddleware: {e}")
             return False
-        
-        if not await self.__secure_client_commands(message, connector, entry):
-            return False
-        
-
-        
-        return True
     
     
     # Handle invitation claim
@@ -308,11 +313,12 @@ class InvitationGuardMiddleware(ABC):
         url = f"https://wa.me/{self.whatsapp_phone_number}?text={code}"
         return url
     
-    async def create_invitation(self, expires_at: int = 0, name: str = None):
+    async def create_invitation(self, expires_at: int = 0, name: str = None, metadata: dict = None):
         code = self.__gen_invite_code()
         entry = InvitationEntry(invite_code=code, 
                                 created_at=int(time.time()), 
                                 expires_at=expires_at, 
+                                metadata=metadata,
                                 name=name)
         await self.client.hset(self.key_prefix, code, json.dumps(asdict(entry)))
         return entry
@@ -340,6 +346,10 @@ class InvitationGuardMiddleware(ABC):
     async def revoke_invitation(self, code: str):
         await self.client.hdel(self.key_prefix, code)
 
+    async def clear_invitations(self):
+        log.warning(f"Clearing invitations from Redis, all keys with prefix {self.key_prefix} will be deleted")
+        await self.client.delete(self.key_prefix)
+        log.debug("Invitations cleared successfully")
     
     # Handle login/logout commands and secure client commands
     async def __handle_login_command(self, 
@@ -383,6 +393,9 @@ class InvitationGuardMiddleware(ABC):
             # clear entry for this session
             await connector.send_text_message(message.lead, "Resetting session data")
             await self.clear_auth(message.lead.get_session_id())
+            await connector.send_text_message(message.lead, "Revoking all invitations")
+            await self.clear_invitations()
+            # await connector.send_text_message(message.lead, "Done")
             
         if text.startswith("/authinfo"):
             await connector.send_text_message(message.lead, f"Auth info: {entry}")
