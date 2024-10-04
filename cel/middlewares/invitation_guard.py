@@ -9,6 +9,7 @@ import json
 from dataclasses import asdict, dataclass
 from cel.assistants.base_assistant import BaseAssistant
 from cel.gateway.model.base_connector import BaseConnector
+from cel.gateway.model.conversation_lead import ConversationLead
 from cel.gateway.model.message import Message
 from loguru import logger as log
 
@@ -154,7 +155,7 @@ class InvitationGuardMiddleware(ABC):
             - **name**: The name associated with the invitation (optional)
             """
             code = self.__gen_invite_code()
-            await self.create_invitation(code, request.expires_at, request.name)
+            await self.create_invitation(code, name=request.name, expires_at=request.expires_at)
             return {
                 "message": "Invitation created successfully",
                 "invite_code": code
@@ -313,7 +314,7 @@ class InvitationGuardMiddleware(ABC):
         url = f"https://wa.me/{self.whatsapp_phone_number}?text={code}"
         return url
     
-    async def create_invitation(self, expires_at: int = 0, name: str = None, metadata: dict = None):
+    async def create_invitation(self, name: str = None, metadata: dict = None, expires_at: int = 0):
         code = self.__gen_invite_code()
         entry = InvitationEntry(invite_code=code, 
                                 created_at=int(time.time()), 
@@ -427,6 +428,28 @@ class InvitationGuardMiddleware(ABC):
             
             
         return True
+    
+    
+    async def send_invitation_assets(self, lead: ConversationLead, invitation: InvitationEntry):
+        qr = None
+        url = None
+        source = lead.connector_name
+        connector = lead.connector
+        
+        if source == "telegram":
+            url = self.__gen_telegram_invitation_url(invitation.invite_code)
+            qr = self.__gen_barcode(url)
+
+        if source == "whatsapp":
+            url = self.__gen_whatsapp_invitation_url(invitation.invite_code)
+            qr = self.__gen_barcode(url)
+
+    
+        await connector.send_image_message(lead, qr, filename="qrcode.png")
+        await connector.send_text_message(lead, f"Invitation link: {url}")
+        await connector.send_text_message(lead, f"Code: {invitation.invite_code}")
+
+    
     
     # Auth Methods
     async def set_entry(self, 

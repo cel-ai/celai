@@ -15,10 +15,16 @@ Usage:
 ------
 Configure the required environment variables in a .env file in the root directory of the project.
 The required environment variables are:
+
 - NGROK_AUTH_TOKEN: The ngrok authentication token for creating a public URL for your local server.
-- WEBHOOK_URL: The webhook URL for the assistant, you can use ngrok to create a public URL for your local server.
 - TELEGRAM_TOKEN: The Telegram bot token for the assistant. You can get this from the BotFather on Telegram.
 - OPENAI_API_KEY: The OpenAI API key for the assistant.
+
+Redis:
+------
+This example uses Redis for storing the conversation state. By default, the assistant will use the
+local Redis server.
+
 
 Then run this script to see a basic AI assistant in action.
 
@@ -50,7 +56,7 @@ from cel.gateway.message_gateway import MessageGateway, StreamMode
 from cel.message_enhancers.smart_message_enhancer_openai import SmartMessageEnhancerOpenAI
 from cel.assistants.macaw.macaw_assistant import MacawAssistant
 from cel.prompt.prompt_template import PromptTemplate
-from cel.middlewares.invitation_guard import InvitationGuardMiddleware
+from cel.middlewares.invitation_guard import InvitationGuardMiddleware, InvitationGuardMiddlewareEvents
 from cel.gateway.request_context import RequestContext
 
 
@@ -64,7 +70,9 @@ guard = InvitationGuardMiddleware(
     # process and gain access to the assistant
     backdoor_invite_code="#QWERTY",
     telegram_bot_name="lola_lionel_bot",
-    allow_only_invited=True
+    allow_only_invited=True,
+    # Localhost redis by default
+    # redis="redis://localhost",
 )
 
 
@@ -82,6 +90,44 @@ prompt_template = PromptTemplate(prompt)
 ast = MacawAssistant(
     prompt=prompt_template
 )
+
+
+@ast.event("message")
+async def on_message(session, message, ctx: RequestContext):
+    if message.text == "doinvites":
+        invites = [
+            {
+                "name": "John Doe",
+                "metadata": {
+                    "email": "jd@mail.com",
+                    "phone": "+1234567890"
+                }
+            }
+        ]
+        for invite in invites:
+            ticket = await guard.create_invitation(invite["name"], invite["metadata"])
+            await guard.send_invitation_assets(lead=ctx.lead, invitation=ticket)
+        return RequestContext.cancel_response()
+
+#Invitation Guard Events
+# ------------------------------------------------------------------------
+@ast.event(guard.events.invitation_accepted)
+async def on_invitation_accepted(session, message, ctx: RequestContext):
+    log.debug(f"Invitation accepted!!")
+    # TODO: Add logic here
+    
+@ast.event(guard.events.rejected_code)
+async def on_rejected_code(session, message, ctx: RequestContext):
+    log.debug(f"Rejected code!!")
+    
+@ast.event(guard.events.admin_login)
+async def on_admin_login(session, message, ctx: RequestContext):
+    log.debug(f"Admin logged in!!")
+    
+@ast.event(guard.events.admin_logout)
+async def on_admin_logout(session, message, ctx: RequestContext):
+    log.debug(f"Admin logged out!!")
+# ------------------------------------------------------------------------
 
 
 # Create the Message Gateway - This component is the core of the assistant
