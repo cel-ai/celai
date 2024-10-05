@@ -18,6 +18,7 @@ Redis = aioredis.Redis
 # WARNING: DO NOT USE THIS KEY IN PRODUCTION
 DEFUALT_MASTER_KEY = "123456"
 
+
 @dataclass
 class AuthEntry(ABC):
     session_id: str = None
@@ -196,9 +197,14 @@ class InvitationGuardMiddleware(ABC):
                 time_since_last_request = time.time() - (entry.last_request or 0)
                 message.metadata = message.metadata or {}
                 message.metadata['time_since_last_request'] = time_since_last_request
+                message.metadata['invitation'] = entry.metadata
+                message.lead.metadata = message.lead.metadata or {}
+                message.lead.metadata['time_since_last_request'] = time_since_last_request
+                message.lead.metadata['invitation'] = entry.metadata
+                
                 await self.set_entry(message.lead.get_session_id(), 
                                     client_cmd_enabled=entry.client_cmd_enabled, 
-                                    metadata=message.metadata,
+                                    metadata=entry.metadata,
                                     invite_code=entry.invite_code)
             else:
                 await self.set_entry(message.lead.get_session_id(), 
@@ -237,7 +243,7 @@ class InvitationGuardMiddleware(ABC):
     async def __handle_invitation_code(self, message: Message, connector: BaseConnector, assistant: BaseAssistant):
         code = self.__search_invitation_code(message.text)
         if code:
-            entry = await self.get_invitation(code)
+            inv = await self.get_invitation(code)
             
             if code == self.backdoor_invite_code and self.backdoor_invite_code:
                 await self.set_entry(message.lead.get_session_id(), invite_code=code)
@@ -248,19 +254,19 @@ class InvitationGuardMiddleware(ABC):
             
             # Reject cases
             # --------------------------------
-            if entry is None:
+            if inv is None:
                 log.critical(f"Invalid code {code} provided")
                 await connector.send_text_message(message.lead, "Invalid code provided")
                 await assistant.call_event(self.events.rejected_code, message.lead, message, connector)
                 return False
             
-            if entry.expires_at > 0 and time.time() > entry.expires_at:
+            if inv.expires_at > 0 and time.time() > inv.expires_at:
                 log.critical(f"Expired code {code} provided")
                 await connector.send_text_message(message.lead, "Expired code provided")
                 await assistant.call_event(self.events.rejected_code, message.lead, message, connector)
                 return False
             
-            if entry.used:
+            if inv.used:
                 log.critical(f"Code {code} already used")
                 await connector.send_text_message(message.lead, "Code already used")
                 await assistant.call_event(self.events.rejected_code, message.lead, message, connector)
@@ -268,7 +274,7 @@ class InvitationGuardMiddleware(ABC):
 
             # Accept the code
             # --------------------------------
-            await self.set_entry(message.lead.get_session_id(), invite_code=code)
+            await self.set_entry(message.lead.get_session_id(), invite_code=code, metadata=inv.metadata)
             await self.claim_invitation(code)
             await connector.send_text_message(message.lead, "Code accepted")      
             message.text = message.text.replace(code, "")      
@@ -337,11 +343,11 @@ class InvitationGuardMiddleware(ABC):
         return None
     
     async def claim_invitation(self, code: str):
-        entry = await self.get_invitation(code)
-        if entry:
-            entry.used = True
-            await self.client.hset(self.key_prefix, code, json.dumps(asdict(entry)))
-            return entry
+        inv = await self.get_invitation(code)
+        if inv:
+            inv.used = True
+            await self.client.hset(self.key_prefix, code, json.dumps(asdict(inv)))
+            return inv
         return None
     
     async def revoke_invitation(self, code: str):
