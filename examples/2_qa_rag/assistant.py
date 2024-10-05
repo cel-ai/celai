@@ -78,7 +78,7 @@ ast.set_rag_retrieval(mdm)
 # Create the Message Gateway - This component is the core of the assistant
 # It handles the communication between the assistant and the connectors
 gateway = MessageGateway(
-    webhook_url=os.environ.get("WEBHOOK_URL"),
+    # webhook_url=os.environ.get("WEBHOOK_URL"),
     assistant=ast,
     host="127.0.0.1", port=5004,
     message_enhancer=SmartMessageEnhancerOpenAI()
@@ -93,5 +93,5 @@ conn = TelegramConnector(
 gateway.register_connector(conn)
 
 # Then start the gateway and begin processing messages
-gateway.run()
+gateway.run(enable_ngrok=True)
 

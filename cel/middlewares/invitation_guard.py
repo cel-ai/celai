@@ -173,7 +173,6 @@ class InvitationGuardMiddleware(ABC):
             await self.revoke_invitation(code)
             return {"message": "Invitation revoked successfully"}
 
-
     # MAIN METHOD - Handle the message
     async def __call__(self, message: Message, connector: BaseConnector, assistant: BaseAssistant):
         try:
@@ -249,7 +248,7 @@ class InvitationGuardMiddleware(ABC):
                 await self.set_entry(message.lead.get_session_id(), invite_code=code)
                 await connector.send_text_message(message.lead, "Backdoor code accepted")
                 message.text = message.text.replace(code, "")
-                await assistant.call_event(self.events.invitation_accepted, message.lead, message, connector, data=entry)
+                await assistant.call_event(self.events.invitation_accepted, message.lead, message, connector, data=inv)
                 return True
             
             # Reject cases
@@ -278,12 +277,11 @@ class InvitationGuardMiddleware(ABC):
             await self.claim_invitation(code)
             await connector.send_text_message(message.lead, "Code accepted")      
             message.text = message.text.replace(code, "")      
-            await assistant.call_event(self.events.invitation_accepted, message.lead, message, connector, data=entry)
+            await assistant.call_event(self.events.invitation_accepted, message.lead, message, connector, data=inv)
             
             return True
         return True
-            
-    
+                
     # Handle invitations 
     def __gen_invite_code(self):
         # genereate a random code 6 alphanumeric characters, including uppercase and lowercase
@@ -435,7 +433,6 @@ class InvitationGuardMiddleware(ABC):
             
         return True
     
-    
     async def send_invitation_assets(self, lead: ConversationLead, invitation: InvitationEntry):
         qr = None
         url = None
@@ -455,8 +452,6 @@ class InvitationGuardMiddleware(ABC):
         await connector.send_text_message(lead, f"Invitation link: {url}")
         await connector.send_text_message(lead, f"Code: {invitation.invite_code}")
 
-    
-    
     # Auth Methods
     async def set_entry(self, 
                         session_id: str, 
