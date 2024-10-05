@@ -38,3 +38,26 @@ In the FULL mode, the response is sent to the connector only after the LLM has c
 | FULL        | Scenarios requiring complete response processing | Sends the complete response after full generation | Ensures fully processed or enhanced responses |
 
 By selecting the appropriate stream mode, developers can tailor the behavior of their AI assistants to best fit the needs of their specific application and platform, ensuring optimal performance and user satisfaction.
+
+## Setting the Stream Mode
+
+When creating a connector, you can specify the stream mode to define how the responses from the AI assistant are sent to the client.
+Messaging Platforms like Telegram, WhatsApp usually supports `FULL` and `SENTENCE` stream modes.
+Other connectors such as VAPI require the `DIRECT` stream mode to support real-time TTS generation.
+
+Here is an example of how to set the stream mode when creating a Telegram connector:
+
+```python
+# For this example, we will use the Telegram Connector
+conn = TelegramConnector(
+    token=os.environ.get("TELEGRAM_TOKEN"), 
+    stream_mode=StreamMode.FULL
+)
+# Register the connector with the gateway
+gateway.register_connector(conn)
+```
+
+
+???+ warning "Smart Message Enhancer"
+
+    When you need to use the `SmartMessageEnhancerOpenAI` be sure to use the `FULL` stream mode. This is because the Smart Message Enhancer requires the full response to be processed and enhanced before sending it back to the user.

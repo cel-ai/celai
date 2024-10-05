@@ -14,24 +14,24 @@ class RedisChatStateProvider(BaseChatStateProvider):
     def get_key(self, sessionId):
         return f"{self.prefix}:{sessionId}"
         
-    def set_key_value(self, sessionId: str, key: str, value, ttl_in_seconds=None):
+    async def set_key_value(self, sessionId: str, key: str, value, ttl_in_seconds=None):
         hash_key = self.get_key(sessionId)
         self.client.hset(hash_key, key, json.dumps(value))
         if ttl_in_seconds:
             self.client.expire(hash_key, ttl_in_seconds)
 
-    def get_key_value(self, sessionId: str, key: str):
+    async def get_key_value(self, sessionId: str, key: str):
         hash_key = self.get_key(sessionId)
         value = self.client.hget(hash_key, key)
         if not value:
             return None
         return json.loads(value)
 
-    def clear_store(self, sessionId: str):
+    async def clear_store(self, sessionId: str):
         hash_key = self.get_key(sessionId)
         self.client.delete(hash_key)
 
-    def clear_all_stores(self):
+    async def clear_all_stores(self):
         hash_key = self.get_key("*")
         keys = self.client.keys(hash_key)
         if not keys:
@@ -39,7 +39,7 @@ class RedisChatStateProvider(BaseChatStateProvider):
         for key in keys:
             self.client.delete(key)
 
-    def get_store(self, sessionId: str):
+    async def get_store(self, sessionId: str):
         hash_key = self.get_key(sessionId)
         store = self.client.hgetall(hash_key)
         if not store:
@@ -48,7 +48,7 @@ class RedisChatStateProvider(BaseChatStateProvider):
         return s
 
 
-    def set_store(self, sessionId: str, store, ttl=None):
+    async def set_store(self, sessionId: str, store, ttl=None):
         hash_key = self.get_key(sessionId)
         for key in store:
             self.client.hset(hash_key, key, json.dumps(store[key]))
