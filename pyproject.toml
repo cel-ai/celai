@@ -1,7 +1,7 @@
 [tool.poetry]
 name = "celai"
-version = "0.1.27"
-description = ""
+version = "0.1.29"
+description = "AI Driven Communication Platform. Assistants made easy."
 authors = ["Alex Martin <alejamp@gmail.com>"]
 readme = "README.md"
 classifiers = [
