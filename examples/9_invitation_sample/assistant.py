@@ -55,7 +55,7 @@ from cel.connectors.telegram import TelegramConnector
 from cel.gateway.message_gateway import MessageGateway, StreamMode
 from cel.assistants.macaw.macaw_assistant import MacawAssistant
 from cel.prompt.prompt_template import PromptTemplate
-from cel.middlewares.invitation_guard import InvitationGuardMiddleware
+from cel.middlewares.invitation_guard import InvitationEntry, InvitationGuardMiddleware
 from cel.gateway.request_context import RequestContext
 
 
@@ -111,9 +111,9 @@ async def on_message(session, message, ctx: RequestContext):
 #Invitation Guard Events
 # ------------------------------------------------------------------------
 @ast.event(guard.events.invitation_accepted)
-async def on_invitation_accepted(session, message, ctx: RequestContext):
+async def on_invitation_accepted(session, message, ctx: RequestContext, data: InvitationEntry):
     log.debug(f"Invitation accepted!!")
-    # TODO: Add logic here
+    log.debug(f"Invitation metadata: {data.metadata}")
     
 @ast.event(guard.events.rejected_code)
 async def on_rejected_code(session, message, ctx: RequestContext):
