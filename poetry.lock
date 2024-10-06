@@ -756,6 +756,25 @@ trio = ["trio (>=0.23)"]
 wmi = ["wmi (>=1.5.1)"]
 
 [[package]]
+name = "elevenlabs"
+version = "1.9.0"
+description = ""
+optional = false
+python-versions = "<4.0,>=3.8"
+files = [
+    {file = "elevenlabs-1.9.0-py3-none-any.whl", hash = "sha256:e8828d154085c717bc5b35c5d8a65d3421655a7670643fc596ba54dc53e17c30"},
+    {file = "elevenlabs-1.9.0.tar.gz", hash = "sha256:873baad8f687b865436f2ca6d697a0d75f38796bec1cc0728c9ed589d1d846b2"},
+]
+
+[package.dependencies]
+httpx = ">=0.21.2"
+pydantic = ">=1.9.2"
+pydantic-core = ">=2.18.2,<3.0.0"
+requests = ">=2.20"
+typing_extensions = ">=4.0.0"
+websockets = ">=11.0"
+
+[[package]]
 name = "eval-type-backport"
 version = "0.2.0"
 description = "Like `typing._eval_type`, but lets older Python versions use newer typing features."
@@ -4528,4 +4547,4 @@ type = ["pytest-mypy"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.11"
-content-hash = "8d133e5b8a163417b80ee9c9ae7c43bb75d885f49dbb5a1117d16fa5f659d322"
+content-hash = "eaf71ed4cc992c37ab08cf7792e8f2dc9fc7c327378905ff4475c8ecfd70eaf6"
