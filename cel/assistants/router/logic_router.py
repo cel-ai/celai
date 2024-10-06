@@ -107,7 +107,7 @@ class LogicRouter(BaseAssistant):
         log.debug(f"Router Assistant selected: {ast.name}")
         
         # Call 'message' event in the selected assistant
-        ast.call_event("message", lead, message)
+        await ast.call_event("message", lead, message)
     
         # Call the assistant new_message method
         async for chunk in ast.new_message(message, local_state):
