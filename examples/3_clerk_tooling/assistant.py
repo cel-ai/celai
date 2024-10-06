@@ -108,13 +108,16 @@ async def handle_create_order(session, params, ctx: FunctionContext):
     extra_ingredients = params['extra_ingredients']
     log.warning(f"Order created for product: {product} with extra ingredients: {extra_ingredients}") 
 
-    # Response back using FunctionContext. This allows you to send a response back to genAI
-    # request_mode=RequestMode.SINGLE is used to indicate that genAI must build a single response
-    return FunctionContext.\
-        response_text(f"Great we are preparing your order for \
-            {product} with extra ingredients: {extra_ingredients}.\
-            Your order will be ready in a few minutes.", 
-                        request_mode=RequestMode.SINGLE)
+    response_message = (
+        f"Great we are preparing your order for {product} "
+        f"with extra ingredients: {extra_ingredients}. "
+        "Your order will be ready in a few minutes."
+    )
+    # Response back using FunctionContext. 
+    # This allows you to send a response back to genAI for processing
+    return FunctionContext.response_text(
+        response_message
+    )
 # --------------------------------------------------------------------
 
 
@@ -138,4 +141,10 @@ gateway.register_connector(conn)
 
 # Then start the gateway and begin processing messages
 gateway.run()
+
+# if you want to use ngrok for testing, 
+# you can enable it by setting enable_ngrok=True
+# NOTE: Make sure you have ngrok installed in your system
+# and env variable NGROK_AUTH_TOKEN set with your ngrok token
+# gateway.run(enable_ngrok=True)
 

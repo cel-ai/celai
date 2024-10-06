@@ -14,8 +14,14 @@ Usage:
 ------
 Configure the required environment variables in a .env file in the root directory of the project.
 The required environment variables are:
-- WEBHOOK_URL: The webhook URL for the assistant, you can use ngrok to create a public URL for your local server.
+
+- NGROK_AUTH_TOKEN: The Ngrok authentication token. You can get this from the Ngrok dashboard.
 - TELEGRAM_TOKEN: The Telegram bot token for the assistant. You can get this from the BotFather on Telegram.
+
+Also becuase this example uses the ElevenLabs and Deepgram APIs, you need to set the following environment variables:
+- ELEVENLABS_API_KEY: The ElevenLabs API key for the assistant. You can get this from the ElevenLabs dashboard.
+- DEEPGRAM_API_KEY: The Deepgram API key for the assistant. You can get this from the Deepgram dashboard.
+
 
 Then run this script to see a basic AI assistant in action.
 
@@ -92,6 +98,11 @@ gateway = MessageGateway(
 )
 
 # Register STT Middleware
+# Allows the assistant to process voice messages from any connector
+# In this case from the Telegram connector
+# The middleware uses the Deepgram API for speech-to-text conversion
+# It detects voice messages and converts them to text, then adds the text
+# into message text field for processing by the assistant
 gateway.register_middleware(DeepgramSTTMiddleware())
 
 
@@ -99,9 +110,13 @@ gateway.register_middleware(DeepgramSTTMiddleware())
 conn = TelegramConnector(
     token=os.environ.get("TELEGRAM_TOKEN"), 
     stream_mode=StreamMode.FULL,
+    
+    # Here we use the ElevenLabsAdapter as the TTS voice provider
+    # Connectors can have different voice providers
+    # Due to the differences in how each platform handles voice messages
+    # Cel.ai provides a way to customize the voice provider for each connector
     voice_provider=ElevenLabsAdapter(
-        # default_voice="N2lVS1w4EtoT3dr4eOWO"
-        default_voice="vmlYDmdjSNo5VXHzUkmp"
+        default_voice="N2lVS1w4EtoT3dr4eOWO"
     )
 )
 # Register the connector with the gateway
