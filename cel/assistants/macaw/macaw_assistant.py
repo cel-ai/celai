@@ -7,6 +7,7 @@ from cel.assistants.macaw.macaw_inference_context import MacawNlpInferenceContex
 from cel.assistants.macaw.macaw_nlp import MacawFunctionCall, blend_message, process_insights, process_new_message
 from cel.assistants.macaw.macaw_settings import MacawSettings
 from cel.gateway.model.conversation_lead import ConversationLead
+from cel.gateway.model.message import Message
 from cel.prompt.prompt_template import PromptTemplate
 from cel.stores.history.base_history_provider import BaseHistoryProvider
 from cel.stores.state.base_state_provider import BaseChatStateProvider
@@ -65,10 +66,10 @@ class MacawAssistant(BaseAssistant):
         log.debug(f"Macaw Assistant initialized with settings: {self.settings}")
         
 
-    async def new_message(self, lead: ConversationLead, message: str, local_state: dict = {}):
+    async def new_message(self, message: Message, local_state: dict = {}):
         # create context
         ctx = MacawNlpInferenceContext(
-            lead=lead,
+            lead=message.lead,
             prompt=self.prompt,
             init_state=self.state,
             local_state=local_state,
@@ -88,7 +89,7 @@ class MacawAssistant(BaseAssistant):
                 )
         try:
             # stream this message content from string
-            async for chunk in process_new_message(ctx, message, on_function_call):
+            async for chunk in process_new_message(ctx, message.text, on_function_call):
                 yield chunk
     
         except Exception as e:
@@ -96,7 +97,7 @@ class MacawAssistant(BaseAssistant):
             
         # execute coroutine to get insights in background dont wait for it
         if self.insight_targets:
-            asyncio.create_task(self.do_insights(lead, history_length=self.settings.insights_history_window_length))
+            asyncio.create_task(self.do_insights(message.lead, history_length=self.settings.insights_history_window_length))
         
         
 

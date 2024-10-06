@@ -348,7 +348,7 @@ class MessageGateway:
                 rt.add_tags(["message", lead.connector_name])
                 
                 with tracing_context(parent=rt):
-                    stream = self.assistant.new_message(message.lead, message.text, {})
+                    stream = self.assistant.new_message(message, {})
                     content = ''
                     
                     if mode == StreamMode.SENTENCE:

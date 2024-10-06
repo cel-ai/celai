@@ -238,7 +238,7 @@ class BaseAssistant(ABC):
             raise ValueError(f"Function {func_name} not found")
             
     @abstractmethod
-    async def new_message(self, lead: ConversationLead, message: str, local_state: dict = {}):
+    async def new_message(self, message: Message, local_state: dict = {}):
         raise NotImplementedError
     
     
