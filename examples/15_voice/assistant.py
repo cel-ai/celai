@@ -1,5 +1,5 @@
 """
-Events with Cel.ai
+STT/TTS with Cel.ai
 ---------------------------------
 
 This is a simple example of an AI Assistant implemented using the Cel.ai framework.
@@ -48,6 +48,8 @@ from cel.message_enhancers.smart_message_enhancer_openai import SmartMessageEnha
 from cel.assistants.macaw.macaw_assistant import MacawAssistant
 from cel.prompt.prompt_template import PromptTemplate
 from cel.gateway.request_context import RequestContext
+from cel.voice.elevenlabs_adapter import ElevenLabsAdapter
+from cel.middlewares.deepgram_stt import DeepgramSTTMiddleware
 
 
 # Setup prompt
@@ -69,38 +71,13 @@ ast = MacawAssistant(prompt=prompt_template)
 async def handle_message(session, ctx: RequestContext):
     log.debug(f"Got message event with message!")
     
-    # This handler will be executed for every message received by the assistant
-    # You can add your custom logic here to handle the message
-    
-    # Through the RequestContext object, you can access the message text and other metadata
-    # as well as send responses back to the user, directly to the connector or through the AI
-    
-    # For example to send a text message back to the user
-    # This messages flies directly to the connector, They are not processed by the AI
-    # and they will not be stored in the conversation history
-    # more over the message will be sent as is, without any formatting or processing
-    await ctx.send_text_message("Got your message!", append_to_history=False)
-    await ctx.send_text_message("We are processing your message...", append_to_history=False)
-    await ctx.send_typing_action()
-    await asyncio.sleep(2)
-    await ctx.send_text_message("Done!", append_to_history=False)
-    
-    # Here we will check the message text is "ping" and respond with "pong"
-    # skipping the AI response
     if ctx.message.text == "ping":
-        # test response text skipping AI response
-        ctx.send_text_message("pong")
+        await ctx.send_text_message("pong! this is STT/TTS Sample assistant")
         return ctx.cancel_ai_response()
     
-    if ctx.message.text == "blend":
-        # test response text blending AI response
-        # return RequestContext.response_text("Great news, you have a 10% discount", blend=True)
-        blended = await ctx.blend_message("Great news, you have a 10% discount")
-        ctx.send_text_message(blended)
+    if ctx.message.text == "talk":
+        await ctx.send_voice_message("Hello, this is a voice generation test. I hope you can hear me.")
         return ctx.cancel_ai_response()
-    
-    
-    # If this returns None, the AI will process the message and generate a response
 
 
 # ---------------------------------------------------------------------------
@@ -111,16 +88,25 @@ gateway = MessageGateway(
     webhook_url=os.environ.get("WEBHOOK_URL"),
     assistant=ast,
     host="127.0.0.1", port=5004,
-    message_enhancer=SmartMessageEnhancerOpenAI()
+    auto_voice_response=True
 )
+
+# Register STT Middleware
+gateway.register_middleware(DeepgramSTTMiddleware())
+
 
 # For this example, we will use the Telegram connector
 conn = TelegramConnector(
     token=os.environ.get("TELEGRAM_TOKEN"), 
-    stream_mode=StreamMode.FULL
+    stream_mode=StreamMode.FULL,
+    voice_provider=ElevenLabsAdapter(
+        # default_voice="N2lVS1w4EtoT3dr4eOWO"
+        default_voice="vmlYDmdjSNo5VXHzUkmp"
+    )
 )
 # Register the connector with the gateway
 gateway.register_connector(conn)
+
 
 # Then start the gateway and begin processing messages
 # gateway.run()

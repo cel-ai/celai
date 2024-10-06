@@ -2,6 +2,7 @@ import asyncio
 import json
 from loguru import logger as log
 from cel.assistants.base_assistant import BaseAssistant
+from cel.assistants.macaw.macaw_history_adapter import MacawHistoryAdapter
 from cel.assistants.macaw.macaw_inference_context import MacawNlpInferenceContext
 from cel.assistants.macaw.macaw_nlp import MacawFunctionCall, blend_message, process_insights, process_new_message
 from cel.assistants.macaw.macaw_settings import MacawSettings
@@ -206,7 +207,24 @@ class MacawAssistant(BaseAssistant):
             # first 250 chars
             yield self.prompt[:250]
             return
+    
+    
+    async def append_message_to_history(self, lead: ConversationLead, message: str, role: str = "assistant"):
+        assert role in ["assistant", "user", "system"], "role must be one of: assistant, user, system"
+
+        history = MacawHistoryAdapter(self._history_store)
+        
+        from langchain_core.messages import HumanMessage, SystemMessage, AIMessage
+        entry = None
+        if role == "assistant":
+            entry = AIMessage(message)
+        elif role == "user":
+            entry = HumanMessage(message)
+        elif role == "system":
+            entry = SystemMessage(message)
             
+        await history.append_to_history(lead, entry)
+        
             
             
     def to_json(self):

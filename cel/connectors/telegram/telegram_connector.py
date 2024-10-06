@@ -1,13 +1,14 @@
-import asyncio
 import os
+import json
+import asyncio
+import shortuuid
 from loguru import logger as log
 from typing import Any, Callable, Dict
 from aiogram import Bot
 from fastapi import APIRouter, BackgroundTasks
 from loguru import logger as log
-import shortuuid
-import json
-from aiogram.types.input_file import BufferedInputFile, FSInputFile
+
+from aiogram.types.input_file import BufferedInputFile
 from cel.comms.utils import async_run
 from cel.gateway.model.base_connector import BaseConnector
 from cel.gateway.message_gateway import StreamMode
@@ -15,6 +16,7 @@ from cel.gateway.model.message import Message
 from cel.connectors.telegram.model.telegram_message import TelegramMessage
 from cel.connectors.telegram.model.telegram_lead import TelegramLead
 from cel.gateway.model.message_gateway_context import MessageGatewayContext
+from cel.voice.base_voice_provider import BaseVoiceProvider
 from cel.gateway.model.outgoing import OutgoingMessage,\
                                             OutgoingMessageType,\
                                             OutgoingLinkMessage,\
@@ -23,9 +25,14 @@ from cel.gateway.model.outgoing import OutgoingMessage,\
 
 
 
+
 class TelegramConnector(BaseConnector):
        
-    def __init__(self, token: str = None, stream_mode: StreamMode = StreamMode.SENTENCE, report_errors_to_telegram: bool = False):
+    def __init__(self, 
+                 token: str = None, 
+                 stream_mode: StreamMode = StreamMode.SENTENCE,
+                 voice_provider: BaseVoiceProvider = None,
+                 report_errors_to_telegram: bool = False):
         log.debug("Creating telegram connector")
         self.token = token or os.getenv("TELEGRAM_TOKEN")     
         self.router = APIRouter(prefix="/telegram")
@@ -34,9 +41,9 @@ class TelegramConnector(BaseConnector):
         # generate shortuuid for security token
         self.security_token = shortuuid.uuid()
         self.__create_routes(self.router)
-        
         self.stream_mode = stream_mode
         self.user_queues = {}
+        self.voice_provider = voice_provider
         
         
         self.report_errors_to_telegram = report_errors_to_telegram or os.getenv("REPORT_ERRORS_TO_TELEGRAM", False)
@@ -224,7 +231,18 @@ class TelegramConnector(BaseConnector):
 
         await self.bot.send_message(chat_id=lead.chat_id, text=text, reply_markup=reply_markup)
 
-
+    async def send_voice_message(self, lead: TelegramLead, text: str, options: dict = {}, is_partial: bool = False):
+        assert isinstance(lead, TelegramLead), "lead must be an instance of TelegramLead"
+        assert isinstance(text, str), "text must be a string"
+        assert isinstance(self.voice_provider, BaseVoiceProvider), "voice_provider must be an instance of BaseVoiceProvider"
+        
+        if not self.voice_provider:
+            log.critical("Error: Voice provider not set in Telegram Connector")
+        # Convert text to voice
+        voice = self.voice_provider.TTS(text, **options)
+        data = BufferedInputFile(b"".join(voice), filename="voice.ogg")
+        await self.bot.send_voice(chat_id=lead.chat_id, voice=data)
+        
         
     async def send_typing_action(self, lead: TelegramLead):
         """Send typing action to the lead. This will show the typing action in the chat.
