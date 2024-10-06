@@ -188,7 +188,7 @@ Returns only the name of the assistant."""
         ast = await self.get_assistant(lead, message.text)
         
         # Call 'message' event in the selected assistant
-        ast.call_event("message", lead, message.text)
+        await ast.call_event("message", lead, message)
         
         assert isinstance(ast, BaseAssistant), "Agent must be a BaseAssistant instance"
         log.debug(f"Router Assistant selected: {ast.name}")
