@@ -29,6 +29,9 @@ class BaseConnector:
     async def send_text_message(self, lead, text: str, metadata: dict = {}, is_partial: bool = True):
         raise NotImplementedError
     
+    async def send_voice_message(self, lead, text: str, options: dict = {}, is_partial: bool = False):
+        raise NotImplementedError
+    
     # Send an image message from memory
     async def send_image_message(self, lead, image: Any, filename:str, caption:str = None, metadata: dict = {}, is_partial: bool = True):
         raise NotImplementedError

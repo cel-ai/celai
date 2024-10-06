@@ -125,7 +125,8 @@ if __name__ == "__main__":
         
         if ctx.message.text == "ping":
             # test response text skipping AI response
-            return RequestContext.response_text("pong", disable_ai_response=True)
+            ctx.connector.send_text_message(ctx.lead, "pong")
+            return ctx.cancel_ai_response()
         
         if "link" in ctx.message.text:
             conn = ctx.connector
@@ -146,7 +147,8 @@ if __name__ == "__main__":
                 ]
                 await conn.send_link_message(ctx.lead, text="Please follow this link", links=links)
                 
-            return RequestContext.response_text("Message type link sent", disable_ai_response=True)
+            ctx.send_text_message("Message type link sent")
+            return ctx.cancel_ai_response()
                 
         
         if "select" in ctx.message.text:
@@ -163,32 +165,34 @@ if __name__ == "__main__":
             if conn.name() == "telegram":
                 assert isinstance(conn, TelegramConnector), "Connector must be an instance of TelegramConnector"
                 await conn.send_select_message(ctx.lead, "Select an option", options=options)
-                return RequestContext.cancel_response()
+                return RequestContext.cancel_ai_response()
                 
             if conn.name() == "whatsapp":
                 assert isinstance(conn, WhatsappConnector), "Connector must be an instance of WhatsappConnector"
                 await conn.send_select_message(ctx.lead, "Select an option", options=options)
-                return RequestContext.cancel_response()
+                return RequestContext.cancel_ai_response()
 
-            return RequestContext.response_text("", disable_ai_response=True)
+            return ctx.cancel_ai_response()
         
         if "echo:" in ctx.message.text:
             # Test echoing the message
             text = ctx.message.text.replace("echo:", "")
             await MessageGateway.send_text_message(ctx.lead, text)
-            return RequestContext.response_text("Message echoed", disable_ai_response=True)
+            return ctx.cancel_ai_response()
         
         
         if "blend:" in ctx.message.text:
             # Test blending into conversation context 
             text = ctx.message.text.replace("blend:", "")
-            return RequestContext.response_text(text, blend=True)
+            ctx.send_text_message(text)
+            return ctx.cancel_ai_response()
         
         if "banme" in ctx.message.text:
             # Add user to blacklist and return a response
             blacklist.add_to_black_list(ctx.lead.get_session_id(), 
                                         InMemBlackListMiddleware(reason="User requested to be banned"))
-            return RequestContext.response_text("You are now banned", disable_ai_response=True)
+            ctx.send_text_message("You are now banned")
+            return ctx.cancel_ai_response()
 
 
     register_client_commands(ast)

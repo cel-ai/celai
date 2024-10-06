@@ -5,6 +5,7 @@ from loguru import logger as log
 from fastapi import APIRouter, Depends, FastAPI, HTTPException, Request, Response
 from loguru import logger as log
 
+from cel.assistants.common import EventResponse
 from cel.assistants.stream_content_chunk import StreamContentChunk
 from cel.comms.sentense_detection import streaming_sentence_detector_async
 from cel.gateway.model.base_connector import BaseConnector
@@ -76,6 +77,14 @@ class MessageGateway:
         - message_enhancer (Callable[[ConversationLead, str, bool], OutgoingMessage], optional): A function
         that enhances the outgoing message before it is sent to the connector. Defaults to None.
         
+        - gateway_api_key (str, optional): An API key for securing the gateway. If set, the gateway will
+        require the API key to be sent in the header of the request. Defaults to None.
+        
+        - gateway_api_key_header (str, optional): The header key for the API key. Defaults to "x-api-key".
+        
+        - auto_voice_response (bool, optional): If True, the gateway will automatically send voice messages in 
+        response to text messages from users. Defaults to False.
+        
     """
     
     #singleton
@@ -98,8 +107,7 @@ class MessageGateway:
                  message_enhancer: Callable[[ConversationLead, str, bool], OutgoingMessage] = None,
                  gateway_api_key: str = None,
                  gateway_api_key_header: str = "x-api-key",
-                 *args,
-                 **kwargs
+                 auto_voice_response: bool = False
                 ):
         self.webhook_url = webhook_url or f"http://{host}:{port}"
         self.host = host
@@ -107,13 +115,11 @@ class MessageGateway:
         self.connectors : list[BaseConnector] = []
         self.secured_paths = ["/gateway", "/middlewares"]
         
-        
         self.app = FastAPI(
             title="Message Gateway",
             description="A message gateway for handling messages from different sources",
             on_startup=[self.__startup],
-            on_shutdown=[self.__shutdown],
-            *args, **kwargs
+            on_shutdown=[self.__shutdown]
         )
         
         if gateway_api_key is not None:
@@ -161,6 +167,7 @@ class MessageGateway:
         self.delivery_rate_control_ratio = delivery_rate_control_ratio
         self.middlewares = middlewares or []
         self.message_enhancer = message_enhancer or DefaultMessageEnhancer()
+        self.auto_voice_response = auto_voice_response
         
     def register_middleware(self, 
                             middleware: Callable[[Message, BaseConnector, BaseAssistant], bool]):
@@ -232,24 +239,16 @@ class MessageGateway:
         try:
             connector = message.lead.connector
             res = await self.assistant.call_event("message", message.lead, message)
+            assert res is None or isinstance(res, EventResponse)
             
             if res is None:
                 log.debug(f"Event: 'message' response is None for message: {message.text}")
-                return True
-            
-            if res.blend:
-                log.debug(f"Blending response: {res.text}")
-                text_in_ctx = await self.assistant.blend(message.lead, res.text)
-                log.debug(f"Blended response: {text_in_ctx}")
-                await connector.send_text_message(message.lead, text_in_ctx)
 
-            if res.disable_ai_response:
-                # TODO: implement image, audio, video responses
-                if res.text:
-                    await connector.send_text_message(message.lead, res.text)
-              
+            if res is not None and res.disable_ai_response:
+                log.warning(f"Event 'message' response has disabled AI response for message: {message.text}")
                 return False
             
+            return True
         except Exception as e:
             log.error(f"Error processing events: {e}")
             return True
@@ -284,7 +283,6 @@ class MessageGateway:
         return False
 
 
-        
     async def process_message(self, message: Message, mode: StreamMode = StreamMode.SENTENCE, capture_repsonse: bool = False):
         """Process a message using the assistant. 
         The message is sent to the assistant for processing.
@@ -345,6 +343,7 @@ class MessageGateway:
             try:
                 rt.add_metadata({
                     "session_id": lead.get_session_id(),
+                    "lead_metadata": lead.metadata
                 })
                 rt.add_tags(["message", lead.connector_name])
                 
@@ -363,7 +362,7 @@ class MessageGateway:
                                 # pass
                             else:
                                 # Send the sentence to the connector
-                                await self.dispatch_outgoing_genai_message(message.lead, 
+                                await self.dispatch_outgoing_genai_message(message, 
                                                                     text=sentence.content, 
                                                                     is_partial=sentence.is_partial)
                                 await connector.send_typing_action(message.lead)
@@ -384,7 +383,7 @@ class MessageGateway:
                                 yield chunk
                                 # pass
                             else:
-                                await self.dispatch_outgoing_genai_message(message.lead, text=chunk.content, is_partial=chunk.is_partial)
+                                await self.dispatch_outgoing_genai_message(message, text=chunk.content, is_partial=chunk.is_partial)
                                 await connector.send_typing_action(message.lead)
 
                     
@@ -399,7 +398,7 @@ class MessageGateway:
                                 yield chunk.content
                                 # pass
                             else:
-                                await self.dispatch_outgoing_genai_message(message.lead, text=content, is_partial=False)
+                                await self.dispatch_outgoing_genai_message(message, text=content, is_partial=False)
                             
                     log.debug(f"Assistant response: {content}")
                     
@@ -416,7 +415,6 @@ class MessageGateway:
                 # pass
             else:
                 await connector.send_text_message(message.lead, text="No assistant available")
-
 
 
     @staticmethod
@@ -438,25 +436,28 @@ class MessageGateway:
 
 
     async def dispatch_outgoing_genai_message(self, 
-                                              lead: ConversationLead, 
+                                              src_message: Message, 
                                               text: str, 
                                               is_partial=False):
-        
-        assert isinstance(lead, ConversationLead),\
-            "lead must be an instance of ConversationLead"
+        assert isinstance(src_message, Message), "src_message must be an instance of Message"
+        lead = src_message.lead
         assert isinstance(text, str),\
             "text must be a string"
-
         assert isinstance(lead.connector, BaseConnector),\
             "connector must be an instance of BaseConnector"
         connector = lead.connector
         
-        # TODO: Call outgoing message enhancer
         msg = await self.message_enhancer(lead, text, is_partial)
 
-        
-        # message = OutgoingTextMessage(content=text, lead=lead, is_partial=is_partial)
+        assert isinstance(msg, OutgoingMessage), "message enhancer must return an instance of OutgoingMessage"        
+
         await connector.send_message(msg)
+        
+        if not is_partial and src_message.isSTT and self.auto_voice_response:
+            await connector.send_typing_action(lead)
+            if isinstance(msg, OutgoingTextMessage):
+                await connector.send_voice_message(lead, msg.content)
+
 
 
     def register_connector(self, connector: BaseConnector):

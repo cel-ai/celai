@@ -249,6 +249,10 @@ class BaseAssistant(ABC):
     @abstractmethod
     async def process_client_command(self, lead: ConversationLead, command: str, args: list[str]):
         yield "Command not found"
+        
+    @abstractmethod
+    async def append_message_to_history(self, lead: ConversationLead, message: str, role: str = "assistant"):
+        raise NotImplementedError
     
     def get_functions(self) -> list[FunctionDefinition]:
        return [f['definition'] for f in self.function_handlers.values()] 

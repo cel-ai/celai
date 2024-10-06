@@ -393,14 +393,28 @@ class InvitationGuardMiddleware(ABC):
                 log.critical(f"Client command {text} from {message.lead.get_session_id()} is not allowed")
                 return False
 
-            
-        if text.startswith("/reset all"):
+        if text.startswith("/help"):
+            await connector.send_text_message(message.lead, "Available commands:")
+            await connector.send_text_message(message.lead, "/login <master_key> - Login as admin")
+            await connector.send_text_message(message.lead, "/logout - Logout as admin")
+            await connector.send_text_message(message.lead, "/help - Show help")
+            await connector.send_text_message(message.lead, "/reset_auth - Reset session data")
+            await connector.send_text_message(message.lead, "/reset_to_fabric - Reset session data and revoke all invitations")
+            await connector.send_text_message(message.lead, "/invite <name> - Create an invitation")
+            await connector.send_text_message(message.lead, "/authinfo - Show session data")
+        
+        if text.startswith("/reset_to_fabric"):
             # clear entry for this session
             await connector.send_text_message(message.lead, "Resetting session data")
             await self.clear_auth(message.lead.get_session_id())
             await connector.send_text_message(message.lead, "Revoking all invitations!")
             await self.clear_invitations()
             await connector.send_text_message(message.lead, "Now you are uninvited, logged out and all invitations are revoked")
+            
+        if text.startswith("/reset_auth"):
+            # clear entry for this session
+            await connector.send_text_message(message.lead, "Resetting session data")
+            await self.clear_auth(message.lead.get_session_id())
             
         if text.startswith("/authinfo"):
             await connector.send_text_message(message.lead, f"Auth info: {entry}")
@@ -411,15 +425,7 @@ class InvitationGuardMiddleware(ABC):
             if len(parts) == 2:
                 invitation = await self.create_invitation(name=parts[1])
                 source = message.lead.connector_name
-                qr = None
-                url = None
-                if source == "telegram":
-                    url = self.__gen_telegram_invitation_url(invitation.invite_code)
-                    qr = self.__gen_barcode(url)
-                
-                if source == "whatsapp":
-                    url = self.__gen_whatsapp_invitation_url(invitation.invite_code)
-                    qr = self.__gen_barcode(url)
+                qr, url = await self.get_invitation_assets(message.lead, invitation)
                     
                 if qr and url:
                     await connector.send_image_message(message.lead, qr, filename="qrcode.png")
@@ -433,24 +439,28 @@ class InvitationGuardMiddleware(ABC):
             
         return True
     
-    async def send_invitation_assets(self, lead: ConversationLead, invitation: InvitationEntry):
+    async def get_invitation_assets(self, lead: ConversationLead, invitation: InvitationEntry):
         qr = None
         url = None
         source = lead.connector_name
-        connector = lead.connector
         
         if source == "telegram":
             url = self.__gen_telegram_invitation_url(invitation.invite_code)
             qr = self.__gen_barcode(url)
-
+        
         if source == "whatsapp":
             url = self.__gen_whatsapp_invitation_url(invitation.invite_code)
             qr = self.__gen_barcode(url)
-
+        
+        return qr, url
     
+    async def send_invitation_assets(self, lead: ConversationLead, invitation: InvitationEntry):
+        qr, url = await self.get_invitation_assets(lead, invitation)
+        connector = lead.connector
         await connector.send_image_message(lead, qr, filename="qrcode.png")
         await connector.send_text_message(lead, f"Invitation link: {url}")
         await connector.send_text_message(lead, f"Code: {invitation.invite_code}")
+
 
     # Auth Methods
     async def set_entry(self, 

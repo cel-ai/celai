@@ -106,7 +106,7 @@ async def on_message(session, message, ctx: RequestContext):
         for invite in invites:
             ticket = await guard.create_invitation(invite["name"], invite["metadata"])
             await guard.send_invitation_assets(lead=ctx.lead, invitation=ticket)
-        return RequestContext.cancel_response()
+        return RequestContext.cancel_ai_response()
 
 #Invitation Guard Events
 # ------------------------------------------------------------------------

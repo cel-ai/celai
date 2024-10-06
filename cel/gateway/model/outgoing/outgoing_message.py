@@ -7,6 +7,7 @@ class OutgoingMessageType:
     TEXT = "text"
     IMAGE = "image"
     AUDIO = "audio"
+    VOICE = "voice"
     VIDEO = "video"
     DOCUMENT = "document"
     LOCATION = "location"
