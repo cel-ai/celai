@@ -10,10 +10,12 @@ from langsmith import traceable
 from cel.assistants.base_assistant import BaseAssistant
 from cel.assistants.router.utils import build_router_query
 from cel.gateway.model.conversation_lead import ConversationLead
+from cel.gateway.model.message import Message
 from cel.stores.history.base_history_provider import BaseHistoryProvider
 from cel.stores.state.base_state_provider import BaseChatStateProvider
 from cel.stores.history.history_inmemory_provider import InMemoryHistoryProvider
 from cel.stores.state.state_inmemory_provider import InMemoryStateProvider
+from cel.assistants.macaw.macaw_history_adapter import MacawHistoryAdapter
 
 
 class AgenticRouter(BaseAssistant):
@@ -180,15 +182,19 @@ Returns only the name of the assistant."""
         plain_dialog = await self.format_dialog_to_plain_text(dialog)
         return await self.infer_best_assistant(plain_dialog)
 
-    async def new_message(self, lead: ConversationLead, message: str, local_state: dict = {}):
+    async def new_message(self, message: Message, local_state: dict = {}):
         log.debug(f"Router Assistant: new message: {message}")
-        ast = await self.get_assistant(lead, message)
+        lead = message.lead
+        ast = await self.get_assistant(lead, message.text)
+        
+        # Call 'message' event in the selected assistant
+        ast.call_event("message", lead, message.text)
         
         assert isinstance(ast, BaseAssistant), "Agent must be a BaseAssistant instance"
         log.debug(f"Router Assistant selected: {ast.name}")
         # return 
     
-        async for chunk in ast.new_message(lead, message, local_state):
+        async for chunk in ast.new_message(message, local_state):
             yield chunk
         
        
@@ -205,6 +211,22 @@ Returns only the name of the assistant."""
         log.warning("Router Assistant: do insights not implemented")
         return {}
 
+
+    async def append_message_to_history(self, lead: ConversationLead, message: str, role: str = "assistant"):
+        assert role in ["assistant", "user", "system"], "role must be one of: assistant, user, system"
+
+        history = MacawHistoryAdapter(self._history_store)
+        
+        from langchain_core.messages import HumanMessage, SystemMessage, AIMessage
+        entry = None
+        if role == "assistant":
+            entry = AIMessage(message)
+        elif role == "user":
+            entry = HumanMessage(message)
+        elif role == "system":
+            entry = SystemMessage(message)
+            
+        await history.append_to_history(lead, entry)
         
     
     async def process_client_command(self, lead: ConversationLead, command: str, args: list[str]):
