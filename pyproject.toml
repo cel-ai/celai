@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "celai"
-version = "0.2.5"
+version = "0.2.6"
 description = "AI Driven Communication Platform. Assistants made easy."
 authors = ["Alex Martin <alejamp@gmail.com>"]
 readme = "README.md"
@@ -19,7 +19,7 @@ Issues = "https://github.com/cel-ai/celai/issues"
 
 [tool.poetry.dependencies]
 #Runtime
-python = "^3.11"
+python = "^3.10"
 # Dependencies for the project:
 redis = ">=4.6.0"
 numpy = "^1.26.4"
