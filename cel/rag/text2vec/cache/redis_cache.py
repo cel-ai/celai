@@ -10,11 +10,19 @@ class RedisCache(BaseCache):
             def wrapper(*args, **kwargs):
                 key = f"{tag}:{args}:{kwargs}" if typed else f"{tag}:{args}"
                 cached_result = self.client.get(key)
+                # decode the cached result
                 if cached_result:
-                    return eval(cached_result)
+                    cached_result = cached_result.decode('utf-8')
+                    return cached_result
+                
                 result = func(*args, **kwargs)
+                
                 if result is not None and expire:
                     self.client.setex(key, expire, str(result))
+                else:
+                    self.client.set(key, str(result))
+                    
                 return result
+                
             return wrapper
         return decorator
