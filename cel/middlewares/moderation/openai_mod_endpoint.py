@@ -9,10 +9,11 @@ from cel.assistants.base_assistant import BaseAssistant
 from cel.gateway.model.base_connector import BaseConnector
 from cel.gateway.model.message import Message
 from loguru import logger as log
+from dataclasses import dataclass
 
 from cel.middlewares.moderation.moderation_events import ModMiddlewareEvents
 
-
+@dataclass
 class RedFlagEntry(ABC):
     count: int = 0
     updated_at: int = 0
@@ -128,9 +129,9 @@ class OpenAIEndpointModerationMiddleware():
         if session_id in self.user_flags:
             self.user_flags[session_id].count += 1
         else:
-            self.user_flags[session_id] = RedFlagEntry()
-            self.user_flags[session_id].count = 1
-            self.user_flags[session_id].updated_at = time.time()
+            self.user_flags[session_id] = RedFlagEntry(count=1, updated_at=time.time())
+            # self.user_flags[session_id].count = 1
+            # self.user_flags[session_id].updated_at = time.time()
             
         return self.user_flags[session_id].count
     
