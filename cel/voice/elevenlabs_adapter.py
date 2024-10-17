@@ -9,7 +9,12 @@ DEFAULT_MODEL="eleven_turbo_v2_5"
 
 class ElevenLabsAdapter(BaseVoiceProvider):
     
-    def __init__(self, api_key: str = None, default_voice: str = "N2lVS1w4EtoT3dr4eOWO", settings: VoiceSettings = None):
+    def __init__(self, api_key: str = None, 
+                 default_voice: str = "N2lVS1w4EtoT3dr4eOWO", 
+                 settings: VoiceSettings = None,
+                 preprocessing_callback: callable = None
+                ):
+        
         self.api_key = api_key
         self.default_voice = default_voice
         self.default_voice_settings = settings or VoiceSettings(
@@ -24,8 +29,13 @@ class ElevenLabsAdapter(BaseVoiceProvider):
             raise Exception("ELEVENLABS_API_KEY not found in the environment")
         
         self.client = ElevenLabs(api_key=key)
+        self.preprocessing_callback = preprocessing_callback
+        
         
     def TTS(self, text: str, voice: str = None, settings: VoiceSettings = None) -> Voice:
+        
+        if self.preprocessing_callback:
+            text = self.preprocessing_callback(text)
 
         audio = self.client.generate(
             text=text,
@@ -45,8 +55,14 @@ class ElevenLabsAdapter(BaseVoiceProvider):
     
 if __name__ == "__main__":
     
-    ELEVENLABS_API_KEY="..."
-    tts = ElevenLabsAdapter(api_key=ELEVENLABS_API_KEY)
+    import os
+    import dotenv
+    dotenv.load_dotenv()
+    ELEVENLABS_API_KEY= os.getenv("ELEVENLABS_API_KEY")
+    tts = ElevenLabsAdapter(
+        api_key=ELEVENLABS_API_KEY,
+        preprocessing_callback=lambda x: x + " - from ElevenLabs"
+    )
     audio = tts.TTS("This is a test")
     play(audio)
     
