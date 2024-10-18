@@ -66,5 +66,11 @@ async def test_ttl(history_provider: RedisHistoryProviderAsync, lead):
     l = await history_provider.get_history(lead)
     assert l == []
         
-
-
+@pytest.mark.asyncio
+async def test_global_ttl(store: ListRedisStoreAsync, lead): 
+    history = RedisHistoryProviderAsync(store, ttl=1)
+    await history.append_to_history(lead, {'message': 'test0'})
+    await asyncio.sleep(2)
+    l = await history.get_history(lead)
+    assert l == []
+        
