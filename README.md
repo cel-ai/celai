@@ -3,7 +3,7 @@
   <img src="https://raw.githubusercontent.com/cel-ai/celai/30b489b21090e3c3f00ffea66d0ae4ac812bd839/cel/assets/celia_logo.png" width="250" />
 </p> -->
 <p align="center">
-  <img src="https://raw.githubusercontent.com/cel-ai/celai/d11d1c81f8193e3de580f6a21376a246fa2d473f/cel/assets/celai_connectors.png" width="500" />
+  <img src="https://raw.githubusercontent.com/cel-ai/celai/d11d1c81f8193e3de580f6a21376a246fa2d473f/cel/assets/celai_connectors.png" width="600" />
 </p>
 
 # Introduction
@@ -35,8 +35,32 @@ Off the shelf, Cel.ai provides a powerful tools such as:
 - Ngrok native integration
 - User Sequential Message Processing
 
-
 [Documentation](https://cel-ai.github.io/celai/)
+
+
+## Multi-Assistant Router
+
+Cel.ai provides a powerful multi-assistant router that allows you to create complex conversational assistants easily. This architecture allows you to scale in a modular way, adding new assistants as needed. The routing can be done based on state variables, user intent, or context.
+
+Agentic Router is the most powerful router in Cel.ai. It allows you to triage messages to different assistants based on user intent and context. It keeps prompts small and focused, allowing for more accurate responses.
+
+Keep prompts at mininal length and focused on a single task will ensure that the user experience is optimal and the response cost are kept low.
+
+For example, if you are building a virtual assistant for a hotel, you can have different assistants for booking/reservation, cancellation, room service, and check-out. The Agentic Router will automatically route messages to the correct assistant based on the user's intent.
+
+
+<p align="center">
+  <img src="https://raw.githubusercontent.com/cel-ai/celai/refs/heads/main/cel/assets/celai_router_diagram.png" width="500" />
+</p>
+
+## In Context Routing
+
+Cel.ai provides a powerful in-context routing system. Messages are routed to the correct assistant based on the user's intent and context. 
+
+Assistant can have its own set of prompts and responses, but share the same context. 
+
+State and History stores are shared between all assistants, allowing for a seamless user experience. Ensuring all assistants are in sync with the user's context.
+
 
 ## Install
 
