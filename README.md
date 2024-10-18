@@ -50,7 +50,7 @@ For example, if you are building a virtual assistant for a hotel, you can have d
 
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/cel-ai/celai/refs/heads/main/cel/assets/celai_router_diagram.png" width="500" />
+  <img src="https://raw.githubusercontent.com/cel-ai/celai/refs/heads/main/cel/assets/celai_router_diagram.png" width="700" />
 </p>
 
 ## In Context Routing
@@ -76,10 +76,20 @@ This example uses OpenAI's GPT-4o model to create a simple assistant that can he
 
 ## Configure Environment Variables
 
+### OpenAI API Key
+
 Make sure to set the `OPENAI_API_KEY` environment variable with your OpenAI API key:
 
 ```bash
 export OPENAI_API_KEY=<YOUR_OPENAI_API_KEY>
+```
+
+### Ngrok Authtoken
+
+The easy way to get a public HTTPS URL for your assistant is to use [ngrok](https://ngrok.com/). Cel.ai has built-in support for ngrok, so you can easily delegate the public URL creation to Cel.ai. To use ngrok, you'll need a Ngrok authtoken. You can get one by signing up on the [ngrok website](https://ngrok.com/). Then set the `NGROK_AUTH_TOKEN` environment variable:
+
+```bash
+export NGRO_AUTH_TOKEN=<YOUR_NGROK_AUTH_TOKEN>
 ```
 
 Then you can create a new Python script with the following code, don't forget to
