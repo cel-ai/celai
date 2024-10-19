@@ -2,7 +2,6 @@ from abc import ABC, abstractmethod
 import inspect
 
 from loguru import logger as log
-from cel.assistants.function_context import FunctionContext
 from cel.assistants.function_response import FunctionResponse
 from cel.gateway.model.base_connector import BaseConnector
 from cel.assistants.common import EventResponse, FunctionDefinition
@@ -17,7 +16,7 @@ from cel.stores.state.state_inmemory_provider import InMemoryStateProvider
 
 class Events:
     START: str = "start"
-    NEW_MESSAGE: str = "new_message"
+    MESSAGE: str = "message"
     IMAGE: str = "image"
     AUDIO: str = "audio"
     END: str = "end"
@@ -197,6 +196,7 @@ class BaseAssistant(ABC):
     
     async def call_function(self, func_name: str, params: dict, lead: ConversationLead) -> FunctionResponse:
         """Call the respective function handler, if exists. Map function arguments to the function handler signature"""
+        from cel.assistants.function_context import FunctionContext
         connector = lead.connector
         if func_name in self.function_handlers:
             func = self.function_handlers[func_name]['func']

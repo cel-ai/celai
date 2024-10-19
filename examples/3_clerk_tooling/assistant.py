@@ -150,7 +150,20 @@ async def handle_create_order(session, params, ctx: FunctionContext):
     product_size = params['product_size']
     
     log.warning(f"Order created for product: {product} with extra ingredients: {extra_ingredients}")
-    log.warning(f"Order created date:", date_time) 
+    log.warning(f"Order created date:", date_time)
+    
+    async with ctx.state_manager() as state:
+        # Save the order details to the state
+        state["order_detail"] = {
+            "product": product,
+            "product_size": product_size,
+            "extra_ingredients": extra_ingredients,
+            "date_time": date_time
+        }
+        # Save the total to the state
+        state["total"] = 100
+        # Save the order status to the state
+        state["order_status"] = "pending"
 
     #TODO: Integration with the POS system ERP
 

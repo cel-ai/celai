@@ -1,20 +1,11 @@
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from cel.assistants.function_response import FunctionResponse, RequestMode
-from cel.gateway.model.base_connector import BaseConnector
-from cel.gateway.model.message import ConversationLead, Message
-from cel.stores.history.base_history_provider import BaseHistoryProvider
-from cel.stores.state.base_state_provider import BaseChatStateProvider
+from cel.assistants.context import Context
 
 
 @dataclass
-class FunctionContext:
-    lead: ConversationLead
-    message: Message | None = None
-    connector: BaseConnector | None = None
-    state: BaseChatStateProvider | None = None
-    history: BaseHistoryProvider | None = None
-
-
+class FunctionContext(Context):
+    
     @staticmethod
     def response_text(text: str, request_mode: RequestMode = RequestMode.SINGLE):
         return FunctionResponse(text=text, request_mode=request_mode)
