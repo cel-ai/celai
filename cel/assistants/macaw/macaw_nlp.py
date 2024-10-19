@@ -75,15 +75,15 @@ async def process_new_message(ctx: MacawNlpInferenceContext, message: str, on_fu
     
     # Build State
     # ------------------------------------------------------------------------
-    stored_state = await ctx.state_store.get_store(ctx.lead.get_session_id())
-    # Initial state  
-    init_state = ctx.init_state or {}
-    # Current state
-    current_state = {**init_state, **(stored_state or {})}
+    stored_state = await ctx.state_store.get_store(ctx.lead.get_session_id()) or {}
+    
+    # TODO: Remove this when the self.init_state is removed
+    stored_state.update(ctx.init_state or {})
+
 
     # Compile prompt
     # ------------------------------------------------------------------------
-    prompt = await ctx.prompt.compile(current_state, ctx.lead, message=message)
+    prompt = await ctx.prompt.compile(stored_state, ctx.lead, message=message)
     
     # RAG
     # ------------------------------------------------------------------------

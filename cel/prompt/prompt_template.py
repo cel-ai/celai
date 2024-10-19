@@ -17,11 +17,15 @@ class PromptTemplate:
     any of the previous types.
     
     :param prompt: The prompt template with placeholders.
+    :param initial_state: The initial state dictionary with values to replace placeholders. This state is static and
+    will not be modified during the conversation. It will be used as a default value if the key is not found in the
+    current stored state.
     """
     
     
-    def __init__(self, prompt: str):
+    def __init__(self, prompt: str, initial_state: Optional[Dict] = {}):
         self.prompt = prompt
+        self.initial_state = initial_state
 
 
     async def compile(self, state: Dict, lead: ConversationLead, message: str) -> str:
@@ -37,9 +41,13 @@ class PromptTemplate:
         assert isinstance(state, dict), "PromptTemplate: state must be a dictionary"
         assert isinstance(lead, ConversationLead), "PromptTemplate: lead must be a ConversationLead instance"
         
+        current_state = self.initial_state.copy()
+        # merge initial state with state param
+        current_state.update(state)
+        
         async def compile_value(key):
-            if key in state:
-                value = state[key]
+            if key in current_state:
+                value = current_state[key]
                 try:
                     if callable(value):
                         return {key: await self.call_function(value, 

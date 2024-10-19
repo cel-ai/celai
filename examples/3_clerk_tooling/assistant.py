@@ -29,6 +29,8 @@ import time
 from loguru import logger as log
 # Load .env variables
 from dotenv import load_dotenv
+
+from cel.assistants.request_context import RequestContext
 load_dotenv()
 
 
@@ -99,21 +101,22 @@ Cash payments are accepted: 10% discount on cash payments.
 If the user asks for the date and time, answer with today's date and time.
 When order is successful finished, answer with the total of the order and
 the order details (product, size, extra ingredients).
+
+Messages processed by the assistant: {count}
 """
     
 
-prompt_template = PromptTemplate(prompt)
+prompt_template = PromptTemplate(prompt, initial_state={
+        # Today full date and time
+        "date": date,
+    })
 
 # Create the assistant based on the Macaw Assistant 
 # NOTE: Make sure to provide api key in the environment variable `OPENAI_API_KEY`
 # add this line to your .env file: OPENAI_API_KEY=your-key
 # or uncomment the next line and replace `your-key` with your OpenAI API key
 # os.environ["OPENAI_API_KEY"] = "your-key.." 
-ast = MacawAssistant(prompt=prompt_template,
-    state={
-        # Today full date and time
-        "date": date,
-    })
+ast = MacawAssistant(prompt=prompt_template, state={})
 
 
 
@@ -125,6 +128,15 @@ mdm = MarkdownRAG("demo", file_path="examples/3_clerk_tooling/qa.md", split_tabl
 mdm.load()
 # Register the RAG model with the assistant
 ast.set_rag_retrieval(mdm)
+
+@ast.event('message')
+async def handle_message(session, ctx: RequestContext):
+    async with ctx.state_manager() as state:
+        count = state.get("count", 0)
+        count += 1
+        state["count"] = count
+        log.warning(f"Message count: {count}")
+
 
 
 # Tool - Create Order
