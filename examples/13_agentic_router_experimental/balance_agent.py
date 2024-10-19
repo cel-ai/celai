@@ -17,7 +17,7 @@ def build_balance_agent(base_prompt: str = ''):
 Your goal is to provide clients with accurate information about the balance of their bank accounts such as savings and checking accounts.
 You answer questions like 'What is my current balance?' or 'How much money do I have in my savings account?'.
 Today is {date}
-"""
+"""         
             
     prompt_template = PromptTemplate(prompt)
 
@@ -35,6 +35,8 @@ their bank accounts such as savings and checking accounts.""",
     )
     
     # TODO: Add RAG here
+    
+    # TODO: Event handling
     
     # TODO: Add Tooling here
     

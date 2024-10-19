@@ -118,7 +118,7 @@ class BaseAssistant(ABC):
         if command in self.client_commands_handlers:
             func = self.client_commands_handlers[command]['func']
             # Build args_dict
-            from cel.gateway.request_context import RequestContext
+            from cel.assistants.request_context import RequestContext
             ctx = RequestContext(lead=lead, 
                                  connector=connector,
                                  assistant=self)
@@ -154,7 +154,7 @@ class BaseAssistant(ABC):
         if event_name in self.event_handlers:
             func = self.event_handlers[event_name]['func']
             connector = connector or lead.connector
-            from cel.gateway.request_context import RequestContext
+            from cel.assistants.request_context import RequestContext
             ctx = RequestContext(lead=lead, 
                                  message=message,
                                  assistant=self,

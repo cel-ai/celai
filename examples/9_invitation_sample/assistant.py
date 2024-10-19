@@ -56,7 +56,7 @@ from cel.gateway.message_gateway import MessageGateway, StreamMode
 from cel.assistants.macaw.macaw_assistant import MacawAssistant
 from cel.prompt.prompt_template import PromptTemplate
 from cel.middlewares.invitation_guard import InvitationEntry, InvitationGuardMiddleware
-from cel.gateway.request_context import RequestContext
+from cel.assistants.request_context import RequestContext
 
 
 # Create Invitation Midlleware

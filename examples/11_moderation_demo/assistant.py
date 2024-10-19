@@ -53,7 +53,7 @@ from cel.middlewares.moderation.openai_mod_endpoint import OpenAIEndpointModerat
 from cel.middlewares.moderation.llama3_guard_togetherai import Llama3GuardModerationMiddleware
 from cel.middlewares.moderation.moderation_events import ModMiddlewareEvents
 from cel.middlewares.in_mem_blacklist import InMemBlackListMiddleware
-from cel.gateway.request_context import RequestContext
+from cel.assistants.request_context import RequestContext
 
 
 # Uncomment the next line to use TogetherAI hosted llama3-guard-moderation

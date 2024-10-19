@@ -18,8 +18,3 @@ class FunctionContext:
     @staticmethod
     def response_text(text: str, request_mode: RequestMode = RequestMode.SINGLE):
         return FunctionResponse(text=text, request_mode=request_mode)
-
-    
-    # @staticmethod
-    # def response_image(image_url: str, request_mode: RequestMode = RequestMode.SINGLE):
-    #     return FunctionResponse(image_url=image_url, request_mode=request_mode)

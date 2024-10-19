@@ -53,7 +53,7 @@ from cel.gateway.message_gateway import MessageGateway, StreamMode
 from cel.message_enhancers.smart_message_enhancer_openai import SmartMessageEnhancerOpenAI
 from cel.assistants.macaw.macaw_assistant import MacawAssistant
 from cel.prompt.prompt_template import PromptTemplate
-from cel.gateway.request_context import RequestContext
+from cel.assistants.request_context import RequestContext
 from cel.voice.elevenlabs_adapter import ElevenLabsAdapter
 from cel.middlewares.deepgram_stt import DeepgramSTTMiddleware
 
