@@ -6,10 +6,17 @@ from cel.stores.history.base_history_provider import BaseHistoryProvider
 
 class RedisHistoryProviderAsync(BaseHistoryProvider):
 
-    def __init__(self, store: ListStore, key_prefix: str = "h"):
+    def __init__(self, store: ListStore, key_prefix: str = "h", ttl=None):
+        """ Create a new RedisHistoryProviderAsync instance.
+        :param store: Redis store
+        :param key_prefix: Prefix for the keys
+        :param ttl: Time to live in seconds for history. If None, it will never expire
+        """
+        
         print(f"Create: RedisHistoryProviderAsync")
         self.store = store
         self.key_prefix = key_prefix
+        self.ttl = ttl
 
     def get_key(self, sessionId: str):
         return f"{self.key_prefix}:{sessionId}"
@@ -17,7 +24,7 @@ class RedisHistoryProviderAsync(BaseHistoryProvider):
     async def append_to_history(self, sessionId: str, entry, metadata=None, ttl=None):
         key = self.get_key(sessionId)
         value = json.dumps(entry)
-        await self.store.list_append(key, value, ttl)
+        await self.store.list_append(key, value, self.ttl or ttl)
 
 
     async def get_history(self, sessionId: str):

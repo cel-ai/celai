@@ -6,7 +6,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from cel.gateway.model.conversation_lead import ConversationLead
 from cel.assistants.function_response import RequestMode
-from cel.gateway.request_context import RequestContext
+from cel.assistants.request_context import RequestContext
 from cel.assistants.common import Param
 from cel.assistants.function_context import FunctionContext
 from cel.connectors.telegram import TelegramConnector

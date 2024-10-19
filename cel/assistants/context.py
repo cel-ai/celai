@@ -1,6 +1,7 @@
 from dataclasses import dataclass, field
 import warnings
 from cel.assistants.common import EventResponse
+from cel.assistants.state_manager import AsyncStateManager
 from cel.gateway.model.base_connector import BaseConnector
 from cel.gateway.model.conversation_lead import ConversationLead
 from cel.gateway.model.message import Message
@@ -10,7 +11,7 @@ from cel.stores.state.base_state_provider import BaseChatStateProvider
 
 
 @dataclass
-class RequestContext:
+class Context:
     lead: ConversationLead
     connector: BaseConnector | None = None
     prompt: str | None = None
@@ -19,6 +20,8 @@ class RequestContext:
     state: BaseChatStateProvider | None = None
     history: BaseHistoryProvider | None = None
     
+    def state_manager(self, commit_on_error: bool = False):
+        return AsyncStateManager(self.lead, self.state, commit_on_error)
     
     async def send_text_message(self, text: str, append_to_history: bool = True):
         """ Send a direct message text to the user conversation. 
@@ -93,8 +96,6 @@ class RequestContext:
         return EventResponse(disable_ai_response=True)
     
     @staticmethod
-    # deprecated this method response_text
-
     def response_text(text: str, disable_ai_response: bool = False, is_private: bool = False, blend: bool = False):
         warnings.warn(
             "The 'response_text' method is deprecated and will be removed in a future release.",
@@ -102,15 +103,4 @@ class RequestContext:
             stacklevel=2
         )        
         return EventResponse(text=text, disable_ai_response=disable_ai_response, is_private=is_private, blend=blend)
-
-    # @staticmethod
-    # def response_image(image_url: str, disable_ai_response: bool = False, is_private: bool = False, blend: bool = False):
-    #     return EventResponse(image=image_url, disable_ai_response=disable_ai_response, is_private=is_private, blend=blend)
-
-    # @staticmethod
-    # def response_audio(audio: str, disable_ai_response: bool = False, is_private: bool = False, blend: bool = False):
-    #     return EventResponse(audio=audio, disable_ai_response=disable_ai_response, is_private=is_private, blend=blend)
-
-    # @staticmethod
-    # def response_video(video_url: str, disable_ai_response: bool = False, is_private: bool = False, blend: bool = False):
-    #     return EventResponse(video=video_url, disable_ai_response=disable_ai_response, is_private=is_private, blend=blend)
+    

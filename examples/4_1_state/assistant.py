@@ -1,5 +1,5 @@
 """
-STT/TTS with Cel.ai
+State Management with Cel.ai
 ---------------------------------
 
 This is a simple example of an AI Assistant implemented using the Cel.ai framework.
@@ -14,14 +14,8 @@ Usage:
 ------
 Configure the required environment variables in a .env file in the root directory of the project.
 The required environment variables are:
-
-- NGROK_AUTH_TOKEN: The Ngrok authentication token. You can get this from the Ngrok dashboard.
+- WEBHOOK_URL: The webhook URL for the assistant, you can use ngrok to create a public URL for your local server.
 - TELEGRAM_TOKEN: The Telegram bot token for the assistant. You can get this from the BotFather on Telegram.
-
-Also becuase this example uses the ElevenLabs and Deepgram APIs, you need to set the following environment variables:
-- ELEVENLABS_API_KEY: The ElevenLabs API key for the assistant. You can get this from the ElevenLabs dashboard.
-- DEEPGRAM_API_KEY: The Deepgram API key for the assistant. You can get this from the Deepgram dashboard.
-
 
 Then run this script to see a basic AI assistant in action.
 
@@ -29,6 +23,7 @@ Note:
 -----
 Please ensure you have the Cel.ai framework installed in your Python environment prior to running this script.
 """
+
 # LOAD ENV VARIABLES
 import asyncio
 import os
@@ -54,8 +49,6 @@ from cel.message_enhancers.smart_message_enhancer_openai import SmartMessageEnha
 from cel.assistants.macaw.macaw_assistant import MacawAssistant
 from cel.prompt.prompt_template import PromptTemplate
 from cel.assistants.request_context import RequestContext
-from cel.voice.elevenlabs_adapter import ElevenLabsAdapter
-from cel.middlewares.deepgram_stt import DeepgramSTTMiddleware
 
 
 # Setup prompt
@@ -71,57 +64,61 @@ prompt_template = PromptTemplate(prompt)
 # os.environ["OPENAI_API_KEY"] = "your-key.."
 ast = MacawAssistant(prompt=prompt_template)
 
+
 # Event handler for the message event
+# This example demonstrates how to use the state manager to store and retrieve state
+# Count the number of messages received from the user and send a response with the count
 # ---------------------------------------------------------------------------
 @ast.event('message')
 async def handle_message(session, ctx: RequestContext):
-    log.debug(f"Got message event with message!")
-    
-    if ctx.message.text == "ping":
-        await ctx.send_text_message("pong! this is STT/TTS Sample assistant")
-        return ctx.cancel_ai_response()
-    
-    if ctx.message.text == "talk":
-        await ctx.send_voice_message("Hello, this is a voice generation test. I hope you can hear me.")
-        return ctx.cancel_ai_response()
+    log.debug(f"Got message event: {ctx.message}")
 
-
+    # State Management. Celai provides a simple way to store and retrieve state
+    # for the conversation. The state is accessible via ctx.state_manager()
+    # For example: ctx.state_manager() returns an AsyncStateManager object
+    # which can be used to store and retrieve state for the conversation.
+    async with ctx.state_manager() as state:
+        count = state.get("count", 0)
+        count += 1
+        state["count"] = count
+        # Add more logic and changes to the state here
+        # For example: state["key"] = value
+        # The state is a simple key-value store that can be used to store
+        # any data related to the conversation.
+        
+    # Once you leave the async with block, the state will be automatically saved
+    # and committed to the state store.
+    
+    # You can still access the state outside the async with block
+    # but you won't be able to save changes to the state automatically
+    # If you need to save changes to the state outside the async with block
+    # you can call: await state.save_state()
+    
+    # We strongly recommend using the async with block for state management
+    
+    # If a error occurs inside the async with block, the state will not be saved
+    # and the changes will be rolled back.So you can safely use the async with block
+    
+    # Send a response
+    await ctx.connector.send_text_message(ctx.lead, f"Message count: {count}")
+    return ctx.cancel_ai_response()
 # ---------------------------------------------------------------------------
 
 # Create the Message Gateway - This component is the core of the assistant
 # It handles the communication between the assistant and the connectors
 gateway = MessageGateway(
-    webhook_url=os.environ.get("WEBHOOK_URL"),
     assistant=ast,
     host="127.0.0.1", port=5004,
-    auto_voice_response=True
+    message_enhancer=SmartMessageEnhancerOpenAI()
 )
-
-# Register STT Middleware
-# Allows the assistant to process voice messages from any connector
-# In this case from the Telegram connector
-# The middleware uses the Deepgram API for speech-to-text conversion
-# It detects voice messages and converts them to text, then adds the text
-# into message text field for processing by the assistant
-gateway.register_middleware(DeepgramSTTMiddleware())
-
 
 # For this example, we will use the Telegram connector
 conn = TelegramConnector(
     token=os.environ.get("TELEGRAM_TOKEN"), 
-    stream_mode=StreamMode.FULL,
-    
-    # Here we use the ElevenLabsAdapter as the TTS voice provider
-    # Connectors can have different voice providers
-    # Due to the differences in how each platform handles voice messages
-    # Cel.ai provides a way to customize the voice provider for each connector
-    voice_provider=ElevenLabsAdapter(
-        default_voice="N2lVS1w4EtoT3dr4eOWO"
-    )
+    stream_mode=StreamMode.FULL
 )
 # Register the connector with the gateway
 gateway.register_connector(conn)
-
 
 # Then start the gateway and begin processing messages
 # gateway.run()

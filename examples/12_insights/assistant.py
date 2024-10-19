@@ -48,7 +48,7 @@ from cel.assistants.macaw.macaw_assistant import MacawAssistant
 from cel.prompt.prompt_template import PromptTemplate
 from cel.middlewares.moderation.openai_mod_endpoint import OpenAIEndpointModerationMiddleware, OpenAIEndpointModerationMiddlewareEvents
 from cel.middlewares.in_mem_blacklist import InMemBlackListMiddleware
-from cel.gateway.request_context import RequestContext
+from cel.assistants.request_context import RequestContext
 from cel.assistants.macaw.macaw_settings import MacawSettings
 
 

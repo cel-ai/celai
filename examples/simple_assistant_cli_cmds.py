@@ -1,6 +1,6 @@
 from loguru import logger as log
 from cel.assistants.base_assistant import BaseAssistant
-from cel.gateway.request_context import RequestContext
+from cel.assistants.request_context import RequestContext
 from cel.connectors.telegram.telegram_connector import TelegramConnector
 
 

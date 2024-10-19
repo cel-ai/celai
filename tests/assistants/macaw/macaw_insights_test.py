@@ -1,7 +1,7 @@
 import pytest
 from cel.assistants.macaw.macaw_assistant import MacawAssistant
 from cel.assistants.macaw.macaw_history_adapter import MacawHistoryAdapter
-from cel.gateway.request_context import RequestContext
+from cel.assistants.request_context import RequestContext
 from cel.gateway.model.conversation_lead import ConversationLead
 from langchain_core.messages import HumanMessage, AIMessage, SystemMessage
 

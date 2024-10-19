@@ -45,9 +45,10 @@ sys.path.append(str(path.parents[1]))
 from cel.connectors.telegram import TelegramConnector
 from cel.gateway.message_gateway import MessageGateway, StreamMode
 from cel.message_enhancers.smart_message_enhancer_openai import SmartMessageEnhancerOpenAI
+from cel.assistants.router.agentic_router import AgenticRouter 
+from cel.assistants.router.logic_router import LogicRouter
 from balance_agent import build_balance_agent
 from transfer_agent import build_transfer_agent
-from cel.assistants.router.agentic_router import AgenticRouter 
 
 
 
@@ -58,14 +59,18 @@ from cel.assistants.router.agentic_router import AgenticRouter
 # The Agentic Router requires a list of assistants to route messages to
 assistants = [build_balance_agent(), build_transfer_agent()]
 
+
+
+
 # Instantiate the Agentic Router
 ast = AgenticRouter(assistants=assistants)
+main = LogicRouter(assistants=[None, ast], assistant_selector_func=lambda x: 1 if x == "transfer" else 0)
 
 
 # Create the Message Gateway - This component is the core of the assistant
 # It handles the communication between the assistant and the connectors
 gateway = MessageGateway(
-    assistant=ast,
+    assistant=main,
     host="127.0.0.1", port=5004
 )
 

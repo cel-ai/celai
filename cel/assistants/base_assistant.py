@@ -2,7 +2,6 @@ from abc import ABC, abstractmethod
 import inspect
 
 from loguru import logger as log
-from cel.assistants.function_context import FunctionContext
 from cel.assistants.function_response import FunctionResponse
 from cel.gateway.model.base_connector import BaseConnector
 from cel.assistants.common import EventResponse, FunctionDefinition
@@ -17,7 +16,7 @@ from cel.stores.state.state_inmemory_provider import InMemoryStateProvider
 
 class Events:
     START: str = "start"
-    NEW_MESSAGE: str = "new_message"
+    MESSAGE: str = "message"
     IMAGE: str = "image"
     AUDIO: str = "audio"
     END: str = "end"
@@ -118,7 +117,7 @@ class BaseAssistant(ABC):
         if command in self.client_commands_handlers:
             func = self.client_commands_handlers[command]['func']
             # Build args_dict
-            from cel.gateway.request_context import RequestContext
+            from cel.assistants.request_context import RequestContext
             ctx = RequestContext(lead=lead, 
                                  connector=connector,
                                  assistant=self)
@@ -154,7 +153,7 @@ class BaseAssistant(ABC):
         if event_name in self.event_handlers:
             func = self.event_handlers[event_name]['func']
             connector = connector or lead.connector
-            from cel.gateway.request_context import RequestContext
+            from cel.assistants.request_context import RequestContext
             ctx = RequestContext(lead=lead, 
                                  message=message,
                                  assistant=self,
@@ -197,6 +196,7 @@ class BaseAssistant(ABC):
     
     async def call_function(self, func_name: str, params: dict, lead: ConversationLead) -> FunctionResponse:
         """Call the respective function handler, if exists. Map function arguments to the function handler signature"""
+        from cel.assistants.function_context import FunctionContext
         connector = lead.connector
         if func_name in self.function_handlers:
             func = self.function_handlers[func_name]['func']
