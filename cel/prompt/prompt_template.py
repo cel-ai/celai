@@ -3,6 +3,7 @@ import asyncio
 import inspect
 import json
 import re
+from loguru import logger as log    
 from typing import Callable, Dict, Optional
 from cel.gateway.model.conversation_lead import ConversationLead
 
@@ -63,10 +64,10 @@ class PromptTemplate:
             
 
     async def call_function(self, 
-                        func: Callable, 
-                        message: Optional[str] = None,
-                        current_state: Optional[dict] = None,
-                        lead: Optional[ConversationLead] = None) -> str:
+                            func: Callable, 
+                            message: Optional[str] = None,
+                            current_state: Optional[dict] = None,
+                            lead: Optional[ConversationLead] = None) -> str:
         """
         Calls a provided function with dynamic arguments.
 
@@ -90,8 +91,8 @@ class PromptTemplate:
             'state': current_state
         }
         
-        func_args = inspect.getfullargspec(func).args
-        kwargs = {arg: args_dict[arg] for arg in func_args if arg in args_dict}
+        func_signature = inspect.signature(func)
+        kwargs = {arg: args_dict[arg] for arg in func_signature.parameters if arg in args_dict}
 
         try:
             if inspect.iscoroutinefunction(func):
@@ -101,5 +102,7 @@ class PromptTemplate:
         except Exception as e:
             # Log exception or handle it as needed
             response = f"Error occurred: {str(e)}"
+            func_name = func.__name__ if hasattr(func, '__name__') else str(func)
+            log.error(f"Error occurred while calling function {func_name}:  {str(e)}")
         
         return json.dumps(response) if isinstance(response, dict) else str(response)
