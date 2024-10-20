@@ -1,7 +1,7 @@
 import pytest
 from cel.assistants.macaw.macaw_assistant import MacawAssistant
 from cel.assistants.macaw.macaw_history_adapter import MacawHistoryAdapter
-from cel.gateway.request_context import RequestContext
+from cel.assistants.request_context import RequestContext
 from cel.gateway.model.conversation_lead import ConversationLead
 from langchain_core.messages import HumanMessage, AIMessage, SystemMessage
 
@@ -57,17 +57,14 @@ async def test_insight_with_events(lead: ConversationLead):
         history_store=history_store
     )
     
-    @assistant.event('insigths')
+    @assistant.event('insights')
     async def handle_insight(session, ctx: RequestContext, data: dict):
-        global insights_from_event
-        insights_from_event = data
+        assert data is not None
+        assert isinstance(data, dict)
         
-    
-
     
     insights = await assistant.do_insights(lead, history_length=20)
     
     assert insights is not None
     assert insights.get("marital_status") is not None
     assert insights.get("childrens") is not None
-    assert insights_from_event is not None

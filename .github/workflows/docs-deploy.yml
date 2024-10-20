@@ -7,14 +7,14 @@ name: Docs Deploy
 
 on:
   push:
-    branches: [ "main", "docs" ]
+    branches: [ "docs" ]
   pull_request:
-    branches: [ "main", "docs" ]
+    branches: [ "docs" ]
 
 jobs:
   build:
     runs-on: ubuntu-latest
-    environment: release
+    environment: github-pages
     permissions:
       # IMPORTANT: this permission is mandatory 
       contents: write

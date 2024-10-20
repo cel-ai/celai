@@ -14,6 +14,7 @@ Usage:
 ------
 Configure the required environment variables in a .env file in the root directory of the project.
 The required environment variables are:
+- OPENAI_API_KEY: The OpenAI API key for the assistant.
 - WEBHOOK_URL: The webhook URL for the assistant, you can use ngrok to create a public URL for your local server.
 - TELEGRAM_TOKEN: The Telegram bot token for the assistant. You can get this from the BotFather on Telegram.
 

@@ -1,3 +1,4 @@
+import os
 from typing import Optional
 from loguru import logger as log
 from cel.assistants.base_assistant import BaseAssistant
@@ -14,6 +15,14 @@ class GeodecodingMiddleware:
     
     def __init__(self, location_prefix_msg: str = "My location: "):
         log.debug("GeodecodingMiddleware initialized")
+        # Check if environment variables are set
+        GOOGLE_GEOCODING_API_KEY = os.getenv("GOOGLE_GEOCODING_API_KEY")
+        if not GOOGLE_GEOCODING_API_KEY:
+            self.enabled = False
+            log.critical("Google Geocoding API Key not set. GeodecodingMiddleware disabled.")
+        else:
+            self.enabled = True
+            
         self.location_prefix_msg = location_prefix_msg
         
     async def __call__(self, 
@@ -22,6 +31,9 @@ class GeodecodingMiddleware:
                        assistant: BaseAssistant) -> bool:
         assert isinstance(message, Message), "Message must be a Message object"
         
+        if not self.enabled:
+            log.error("GeodecodingMiddleware disabled. Google Geocoding API Key not set.")
+            return False
         
         try:    
             attachments = message.attachments or []
@@ -39,7 +51,11 @@ class GeodecodingMiddleware:
                 if address:
                     location_attachment.metadata["address"] = address
                     desc = f"({location_attachment.description})" if location_attachment.description else ""
+                    
+                    # ------------------------------------------------------------------
                     message.text = f"{self.location_prefix_msg} {desc} {address}"
+                    # ------------------------------------------------------------------
+                    
                     log.debug(f"{self.location_prefix_msg}{location_attachment}")
             return True
         except ValueError as e:

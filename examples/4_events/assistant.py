@@ -47,7 +47,7 @@ from cel.gateway.message_gateway import MessageGateway, StreamMode
 from cel.message_enhancers.smart_message_enhancer_openai import SmartMessageEnhancerOpenAI
 from cel.assistants.macaw.macaw_assistant import MacawAssistant
 from cel.prompt.prompt_template import PromptTemplate
-from cel.gateway.request_context import RequestContext
+from cel.assistants.request_context import RequestContext
 
 
 # Setup prompt
@@ -79,25 +79,30 @@ async def handle_message(session, ctx: RequestContext):
     # This messages flies directly to the connector, They are not processed by the AI
     # and they will not be stored in the conversation history
     # more over the message will be sent as is, without any formatting or processing
-    await ctx.send_text_message("Got your message!")
-    await ctx.send_text_message("We are processing your message...")
+    await ctx.send_text_message("Got your message!", append_to_history=False)
+    await ctx.send_text_message("We are processing your message...", append_to_history=False)
     await ctx.send_typing_action()
     await asyncio.sleep(2)
-    await ctx.send_text_message("Done!")
+    await ctx.send_text_message("Done!", append_to_history=False)
     
     # Here we will check the message text is "ping" and respond with "pong"
     # skipping the AI response
     if ctx.message.text == "ping":
         # test response text skipping AI response
-        return RequestContext.response_text("pong", disable_ai_response=True)
+        ctx.send_text_message("pong")
+        return ctx.cancel_ai_response()
     
     if ctx.message.text == "blend":
         # test response text blending AI response
-        return RequestContext.response_text("Great news, you have a 10% discount", blend=True)
+        # return RequestContext.response_text("Great news, you have a 10% discount", blend=True)
+        blended = await ctx.blend_message("Great news, you have a 10% discount")
+        ctx.send_text_message(blended)
+        return ctx.cancel_ai_response()
+    
     
     # If this returns None, the AI will process the message and generate a response
-    
-    
+
+
 # ---------------------------------------------------------------------------
 
 # Create the Message Gateway - This component is the core of the assistant
@@ -118,5 +123,6 @@ conn = TelegramConnector(
 gateway.register_connector(conn)
 
 # Then start the gateway and begin processing messages
-gateway.run()
+# gateway.run()
+gateway.run(enable_ngrok=True)
 

@@ -1,7 +1,7 @@
 [tool.poetry]
 name = "celai"
-version = "0.1.0"
-description = ""
+version = "0.3.2"
+description = "AI Driven Communication Platform. Assistants made easy."
 authors = ["Alex Martin <alejamp@gmail.com>"]
 readme = "README.md"
 classifiers = [
@@ -47,6 +47,11 @@ langchain-chroma = ">=0.1.1"
 langchain-community = ">=0.2.1"
 langchain-openai = ">=0.1.8"
 aiogram = ">=3.6.0"
+ollama = ">=0.3.1"
+qrcode = ">=7.4.2"
+pymongo = ">=4.8.0"
+together = ">=1.2.12"
+elevenlabs = ">=1.9.0"
 
 [tool.poetry.group.dev.dependencies]
 pytest = ">=8.2.0"

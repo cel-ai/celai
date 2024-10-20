@@ -1,6 +1,6 @@
 from loguru import logger as log
 from cel.assistants.base_assistant import BaseAssistant
-from cel.gateway.request_context import RequestContext
+from cel.assistants.request_context import RequestContext
 from cel.connectors.telegram.telegram_connector import TelegramConnector
 
 
@@ -25,7 +25,7 @@ def register_client_commands(ast: BaseAssistant):
             if ctx.connector.name() == "telegram":
                 assert isinstance(ctx.connector, TelegramConnector), "Connector must be an instance of TelegramConnector"
                 await ctx.connector.send_link_message(ctx.lead, text="Please follow this link", links=links)
-            return RequestContext.cancel_response()
+            return RequestContext.cancel_ai_response()
         
         
         if demo == "select":
@@ -40,4 +40,4 @@ def register_client_commands(ast: BaseAssistant):
         
         # help command
         await ctx.connector.send_text_message(ctx.lead, "Available demos: link, select")
-        return RequestContext.cancel_response()
+        return RequestContext.cancel_ai_response()

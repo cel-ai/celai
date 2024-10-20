@@ -1,9 +1,11 @@
 from abc import ABC
+from typing import Any
 from deepgram import DeepgramClient, PrerecordedOptions, ClientOptionsFromEnv
+from cel.voice.base_voice_provider import BaseVoiceProvider
 
 
 
-class DeepgramAdapter(ABC):
+class DeepgramAdapter(BaseVoiceProvider):
     def __init__(self, 
                  smart_format:bool = True, 
                  detect_language: bool = True, 
@@ -29,6 +31,7 @@ class DeepgramAdapter(ABC):
 
         transcript = response["results"]["channels"][0]["alternatives"][0]["transcript"]
         return transcript
-
-    async def TTS(self, text: str) -> dict[str, any]:
+    
+    async def TTS(self, text: str, voice: str = None, settings: Any = None):
         raise NotImplementedError
+

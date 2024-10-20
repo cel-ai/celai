@@ -2,36 +2,57 @@ from abc import ABC, abstractmethod
 import inspect
 
 from loguru import logger as log
-from cel.assistants.function_context import FunctionContext
 from cel.assistants.function_response import FunctionResponse
 from cel.gateway.model.base_connector import BaseConnector
 from cel.assistants.common import EventResponse, FunctionDefinition
 from cel.gateway.model.message import Message, ConversationLead
 from cel.prompt.prompt_template import PromptTemplate
 from cel.rag.providers.rag_retriever import RAGRetriever
+from cel.stores.history.base_history_provider import BaseHistoryProvider
+from cel.stores.state.base_state_provider import BaseChatStateProvider
+from cel.stores.history.history_inmemory_provider import InMemoryHistoryProvider
+from cel.stores.state.state_inmemory_provider import InMemoryStateProvider
 
 
 class Events:
     START: str = "start"
-    NEW_MESSAGE: str = "new_message"
+    MESSAGE: str = "message"
     IMAGE: str = "image"
     AUDIO: str = "audio"
     END: str = "end"
 
 class BaseAssistant(ABC):
     
-    def __init__(self, prompt: PromptTemplate = None):
-
+    def __init__(self, 
+                 name: str = None,
+                 description: str = None,
+                 prompt: PromptTemplate = None,
+                 history_store: BaseHistoryProvider = None,
+                 state_store: BaseChatStateProvider = None,
+                ):
+        self.name = name
+        self.description = description
         self.function_handlers = {}
         self.event_handlers = {}
         self.client_commands_handlers = {}
         self.timeout_handlers = {}
+        self._state_store = state_store or InMemoryStateProvider()
+        self._history_store = history_store or InMemoryHistoryProvider()
+        
         self.rag_retriever: RAGRetriever = None
         if prompt:
             assert isinstance(prompt, PromptTemplate), "prompt must be an instance of PromptTemplate"
         self.prompt = prompt or PromptTemplate('')
 
-            
+    def set_history_store(self, history_store: BaseHistoryProvider):
+        # check type
+        assert isinstance(history_store, BaseHistoryProvider), "history_store must be an instance of BaseHistoryProvider"
+        self._history_store = history_store
+        
+    def set_state_store(self, state_store: BaseChatStateProvider):
+        # check type
+        assert isinstance(state_store, BaseChatStateProvider), "state_store must be an instance of BaseChatStateProvider"
+        self._state_store = state_store
             
     def set_rag_retrieval(self, rag_retrieval: RAGRetriever):
         # check type
@@ -96,7 +117,7 @@ class BaseAssistant(ABC):
         if command in self.client_commands_handlers:
             func = self.client_commands_handlers[command]['func']
             # Build args_dict
-            from cel.gateway.request_context import RequestContext
+            from cel.assistants.request_context import RequestContext
             ctx = RequestContext(lead=lead, 
                                  connector=connector,
                                  assistant=self)
@@ -132,10 +153,12 @@ class BaseAssistant(ABC):
         if event_name in self.event_handlers:
             func = self.event_handlers[event_name]['func']
             connector = connector or lead.connector
-            from cel.gateway.request_context import RequestContext
+            from cel.assistants.request_context import RequestContext
             ctx = RequestContext(lead=lead, 
                                  message=message,
                                  assistant=self,
+                                 state=self._state_store,
+                                 history=self._history_store,
                                  connector=connector)
             
             # Build args_dict
@@ -145,7 +168,9 @@ class BaseAssistant(ABC):
                 'lead': lead,
                 'message': message,
                 'connector': connector,
-                'data': data
+                'data': data,
+                'state': self._state_store,
+                'history': self._history_store
             }
             
             # Build kwargs using args and args_dict
@@ -171,19 +196,26 @@ class BaseAssistant(ABC):
     
     async def call_function(self, func_name: str, params: dict, lead: ConversationLead) -> FunctionResponse:
         """Call the respective function handler, if exists. Map function arguments to the function handler signature"""
+        from cel.assistants.function_context import FunctionContext
         connector = lead.connector
         if func_name in self.function_handlers:
             func = self.function_handlers[func_name]['func']
             args = inspect.getfullargspec(func).args
 
-            ctx = FunctionContext(lead=lead, connector=connector)
+            ctx = FunctionContext(lead=lead, 
+                                  connector=connector, 
+                                  state=self._state_store, 
+                                  history=self._history_store)
+            
             args_dict = {
                 'session': lead.get_session_id(),
                 'ctx': ctx,
                 'params': params,
                 'lead': lead,
                 'message': None,
-                'connector': connector
+                'connector': connector,
+                'state': self._state_store,
+                'history': self._history_store                
             }
 
             # Build kwargs using args and args_dict
@@ -206,7 +238,7 @@ class BaseAssistant(ABC):
             raise ValueError(f"Function {func_name} not found")
             
     @abstractmethod
-    async def new_message(self, lead: ConversationLead, message: str, local_state: dict = {}):
+    async def new_message(self, message: Message, local_state: dict = {}):
         raise NotImplementedError
     
     
@@ -217,6 +249,10 @@ class BaseAssistant(ABC):
     @abstractmethod
     async def process_client_command(self, lead: ConversationLead, command: str, args: list[str]):
         yield "Command not found"
+        
+    @abstractmethod
+    async def append_message_to_history(self, lead: ConversationLead, message: str, role: str = "assistant"):
+        raise NotImplementedError
     
     def get_functions(self) -> list[FunctionDefinition]:
        return [f['definition'] for f in self.function_handlers.values()] 
@@ -224,4 +260,13 @@ class BaseAssistant(ABC):
     def get_events(self):
         return self.event_handlers
     
-        
+    # str method
+    def __str__(self):
+        return f"{self.name}: {self.description}"
+    
+    # json dumps method
+    def to_json(self):
+        return {
+            'name': self.name,
+            'description': self.description
+        }
