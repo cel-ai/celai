@@ -73,7 +73,7 @@ ast = MacawAssistant(prompt=prompt_template)
 async def handle_message(session, ctx: RequestContext):
     log.debug(f"Got message event: {ctx.message}")
 
-    # State Management. Celai provides a simple way to store and retrieve state
+    # State Manager: Celai provides a simple way to store and retrieve state
     # for the conversation. The state is accessible via ctx.state_manager()
     # For example: ctx.state_manager() returns an AsyncStateManager object
     # which can be used to store and retrieve state for the conversation.

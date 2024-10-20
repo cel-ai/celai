@@ -3,6 +3,7 @@ import asyncio
 import inspect
 import json
 import re
+from loguru import logger as log    
 from typing import Callable, Dict, Optional
 from cel.gateway.model.conversation_lead import ConversationLead
 
@@ -16,11 +17,15 @@ class PromptTemplate:
     any of the previous types.
     
     :param prompt: The prompt template with placeholders.
+    :param initial_state: The initial state dictionary with values to replace placeholders. This state is static and
+    will not be modified during the conversation. It will be used as a default value if the key is not found in the
+    current stored state.
     """
     
     
-    def __init__(self, prompt: str):
+    def __init__(self, prompt: str, initial_state: Optional[Dict] = {}):
         self.prompt = prompt
+        self.initial_state = initial_state
 
 
     async def compile(self, state: Dict, lead: ConversationLead, message: str) -> str:
@@ -36,9 +41,13 @@ class PromptTemplate:
         assert isinstance(state, dict), "PromptTemplate: state must be a dictionary"
         assert isinstance(lead, ConversationLead), "PromptTemplate: lead must be a ConversationLead instance"
         
+        current_state = self.initial_state.copy()
+        # merge initial state with state param
+        current_state.update(state)
+        
         async def compile_value(key):
-            if key in state:
-                value = state[key]
+            if key in current_state:
+                value = current_state[key]
                 try:
                     if callable(value):
                         return {key: await self.call_function(value, 
@@ -63,10 +72,10 @@ class PromptTemplate:
             
 
     async def call_function(self, 
-                        func: Callable, 
-                        message: Optional[str] = None,
-                        current_state: Optional[dict] = None,
-                        lead: Optional[ConversationLead] = None) -> str:
+                            func: Callable, 
+                            message: Optional[str] = None,
+                            current_state: Optional[dict] = None,
+                            lead: Optional[ConversationLead] = None) -> str:
         """
         Calls a provided function with dynamic arguments.
 
@@ -90,8 +99,8 @@ class PromptTemplate:
             'state': current_state
         }
         
-        func_args = inspect.getfullargspec(func).args
-        kwargs = {arg: args_dict[arg] for arg in func_args if arg in args_dict}
+        func_signature = inspect.signature(func)
+        kwargs = {arg: args_dict[arg] for arg in func_signature.parameters if arg in args_dict}
 
         try:
             if inspect.iscoroutinefunction(func):
@@ -101,5 +110,7 @@ class PromptTemplate:
         except Exception as e:
             # Log exception or handle it as needed
             response = f"Error occurred: {str(e)}"
+            func_name = func.__name__ if hasattr(func, '__name__') else str(func)
+            log.error(f"Error occurred while calling function {func_name}:  {str(e)}")
         
         return json.dumps(response) if isinstance(response, dict) else str(response)

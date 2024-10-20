@@ -1,5 +1,6 @@
 import asyncio
 import json
+import warnings
 from loguru import logger as log
 from cel.assistants.base_assistant import BaseAssistant
 from cel.assistants.macaw.macaw_history_adapter import MacawHistoryAdapter
@@ -56,6 +57,9 @@ class MacawAssistant(BaseAssistant):
                          state_store=state_store,
                          name=name,
                          description=description)
+        
+        if state is not None:
+            log.warning("MacawAssistant: The 'state' parameter is deprecated and will be removed in a future version.")
         
         self.state = state or {}
         self.insight_targets = insight_targets
@@ -163,10 +167,19 @@ class MacawAssistant(BaseAssistant):
         if command == "state":
             state = await self._state_store.get_store(lead.get_session_id())
             if state is None:
-                yield "No state found"
-                return
-            for k, v in state.items():
-                yield f"{k}: {v}"
+                yield "Stored state: empty"
+            else:
+                yield "Stored state:"
+                for k, v in state.items():
+                    yield f"{k}: {v}"
+                
+            initial_state = self.prompt.initial_state
+            if initial_state:
+                yield "Initial state:"
+                for k, v in initial_state.items():
+                    yield f"{k}: {v}"
+            else:
+                yield "Initial state: empty"
             return
         
         if command == "history":
