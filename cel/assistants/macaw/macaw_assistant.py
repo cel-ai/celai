@@ -97,7 +97,8 @@ class MacawAssistant(BaseAssistant):
                 yield chunk
     
         except Exception as e:
-            log.error(f"Macaw Assistant: error processing new message: {e}")
+            # log.error(f"Macaw Assistant: error processing new message: {e}")
+            log.exception(e)
             
         # execute coroutine to get insights in background dont wait for it
         if self.insight_targets:
@@ -121,32 +122,37 @@ class MacawAssistant(BaseAssistant):
         return await blend_message(ctx, message=text)
     
     async def do_insights(self, lead: ConversationLead, targets: dict = {}, history_length: int = 10):
-        assert isinstance(targets, dict), "targets must be a dictionary"
-        
-        if self.settings.insights_enabled is False:
-            log.warning("Insights are disabled, returning None")
+        try:
+            assert isinstance(targets, dict), "targets must be a dictionary"
+            
+            if self.settings.insights_enabled is False:
+                log.warning("Insights are disabled, returning None")
+                return None
+            
+            log.debug(f"Getting insights for lead: {lead} with targets: {targets}")
+            
+            mix_targets = {**self.insight_targets, **targets}
+            
+            # create context
+            ctx = MacawNlpInferenceContext(
+                lead=lead,
+                prompt=self.prompt,
+                init_state=self.state,
+                local_state={},
+                history_store=self._history_store,
+                state_store=self._state_store,
+                settings=self.settings
+            )
+            
+            insights = await process_insights(ctx, targets=mix_targets)
+            
+            # raise insight event
+            await self.call_event("insights", lead, data=insights)
+            return insights
+        except Exception as e:
+            log.error(f"Error getting insights: {e}")
+            log.exception(e)
             return None
-        
-        log.debug(f"Getting insights for lead: {lead} with targets: {targets}")
-        
-        mix_targets = {**self.insight_targets, **targets}
-        
-        # create context
-        ctx = MacawNlpInferenceContext(
-            lead=lead,
-            prompt=self.prompt,
-            init_state=self.state,
-            local_state={},
-            history_store=self._history_store,
-            state_store=self._state_store,
-            settings=self.settings
-        )
-        
-        insights = await process_insights(ctx, targets=mix_targets)
-        
-        # raise insight event
-        await self.call_event("insights", lead, data=insights)
-        return insights
         
     
     async def process_client_command(self, lead: ConversationLead, command: str, args: list[str]):
