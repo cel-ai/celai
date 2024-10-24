@@ -1,5 +1,5 @@
 """
-Celai 101 Tooling Example: Crypto prices
+Celai 101 Tooling Example: Crypto prices + Redis
 ------------------------------------------
 
 This is a simple example of an AI Assistant implemented using the Cel.ai framework.
@@ -32,6 +32,9 @@ from dotenv import load_dotenv
 
 from cel.assistants.macaw.macaw_settings import MacawSettings
 from cel.assistants.request_context import RequestContext
+from cel.stores.common.list_redis_store_async import ListRedisStoreAsync
+from cel.stores.history.history_redis_provider_async import RedisHistoryProviderAsync
+from cel.stores.state.state_redis_provider import RedisChatStateProvider
 load_dotenv()
 
 
@@ -51,16 +54,17 @@ from cel.assistants.macaw.macaw_assistant import MacawAssistant
 from cel.prompt.prompt_template import PromptTemplate
 from cel.gateway.model.conversation_lead import ConversationLead
 from cel.assistants.function_context import FunctionContext
+from cel.assistants.function_response import RequestMode
 from cel.assistants.common import Param
 from datetime import datetime
 
 
 def date():
     return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
 def get_customer_name(lead: ConversationLead):
     return lead.conversation_from.name or "unknown"
     
-
 
 # Setup prompt
 prompt = """Your name is {assistant_name}. I can help you with the latest crypto prices.
@@ -68,7 +72,6 @@ Today is {date}.
 Customer's name is {customer_name}, address him by his name.
 """
     
-
 prompt_template = PromptTemplate(prompt, initial_state={
         # Assistant name
         "assistant_name": "CryptoBot",
@@ -78,8 +81,20 @@ prompt_template = PromptTemplate(prompt, initial_state={
         "customer_name": get_customer_name
     })
 
+
+
+
+
+state_store = RedisChatStateProvider(redis="redis://localhost:6379/0")
+histoy_store = RedisHistoryProviderAsync(ListRedisStoreAsync(
+    redis="redis://default:uUUcEkbHeZKiiQKckqUpqkRKAvVGOxJQ@autorack.proxy.rlwy.net:52598", 
+    key_prefix="h:ale"))
+
 ast = MacawAssistant(
-    prompt=prompt_template
+    prompt=prompt_template,
+    settings=MacawSettings(core_history_window_length=3),
+    state_store=state_store,
+    history_store=histoy_store
 )
 
 
