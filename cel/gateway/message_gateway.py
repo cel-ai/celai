@@ -491,10 +491,10 @@ class MessageGateway:
             try:
                 import ngrok
             except ImportError:
-                log.error("Ngrok is not installed. \
-                          Please install ngrok to run the gateway with ngrok.\
-                              Execute the following command to install ngrok:\
-                                  pip install ngrok")
+                log.error("Ngrok is not installed."
+                    "Please install ngrok to run the gateway with ngrok. "
+                    "Execute the following command to install ngrok: "
+                    "pip install ngrok")
                 return
             
 

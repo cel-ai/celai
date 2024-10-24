@@ -55,4 +55,5 @@ For example, you can create a `PDFDecodingMiddleware` to decode a PDF file share
 At the core of Cel.ai are Assistants, which handle everything from conversation history persistence to state management and Retrieval-Augmented Generation (RAG). The framework includes a built-in assistant named **Macaw**, which is implemented using LangChain. However, you can also create your own assistant using the framework or any LLM model of your choice.
 
 
-
+### Message Enhancers
+Message Enhancers are used to process the assistant's responses before they are sent to the user. This can include formatting the response, adding additional information, or enhancing the response with additional data. For example, you can use a `SmartMessageEnhancerOpenAI` to enhance the assistant's responses using the OpenAI API.

@@ -1,6 +1,7 @@
 import asyncio
 from dataclasses import dataclass
 import json
+import traceback
 from loguru import logger as log
 from cel.assistants.function_response import FunctionResponse
 from cel.assistants.macaw.custom_chat_models.chat_open_router import ChatOpenRouter
@@ -75,15 +76,21 @@ async def process_new_message(ctx: MacawNlpInferenceContext, message: str, on_fu
     
     # Build State
     # ------------------------------------------------------------------------
-    stored_state = await ctx.state_store.get_store(ctx.lead.get_session_id()) or {}
-    
-    # TODO: Remove this when the self.init_state is removed
-    stored_state.update(ctx.init_state or {})
+    try:
+        stored_state = await ctx.state_store.get_store(ctx.lead.get_session_id()) or {}    
+        # TODO: Remove this when the self.init_state is removed
+        stored_state.update(ctx.init_state or {})
+    except Exception as e:
+        raise ValueError("Macaw NLP: Error getting stored state") from e
+
 
 
     # Compile prompt
-    # ------------------------------------------------------------------------
-    prompt = await ctx.prompt.compile(stored_state, ctx.lead, message=message)
+    # ------------------------------------------------------------------------  
+    try: 
+        prompt = await ctx.prompt.compile(stored_state, ctx.lead, message=message)
+    except Exception as e:
+        raise ValueError("Macaw NLP: Error compiling prompt") from e
     
     # RAG
     # ------------------------------------------------------------------------
@@ -124,63 +131,67 @@ async def process_new_message(ctx: MacawNlpInferenceContext, message: str, on_fu
     )
     
     response = None
-    async for delta in llm_with_tools.astream(messages):
-        assert isinstance(delta, AIMessageChunk)
-        if response is None:
-            response = delta
-        else:
-            response += delta    
-    
-        # if delta.content:
-        #     # Shield the content from the response
-        #     yield StreamContentChunk(content=delta.content, is_partial=True)
-    
-    # Append the final response
-    messages.append(response)
-    # Impact on history store, on the background
-    asyncio.create_task(history_store.append_to_history(ctx.lead, response))            
-
-
-    # Allow for multiple function calls in a single message request
-    for idx in range(ctx.settings.core_max_function_calls_in_message):
-        if response.tool_calls:
-            # Do all function calls
-            for tool_call in response.tool_calls: 
-                name = tool_call.get("name")
-                args = tool_call.get("args")
-                id = tool_call.get("id")
-                log.debug(f"Function: {name} called with params: {args}")
-                try:
-                    mtool_call = MacawFunctionCall(name, args, id)
-                    func_output: FunctionResponse = await on_function_call(ctx, mtool_call)
-
-                    msg = ToolMessage(func_output.text, tool_call_id=id)
-                    messages.append(msg)
-                    # Impact on history store, on the background
-                    asyncio.create_task(
-                        history_store.append_to_history(
-                            ctx.lead,
-                            msg)
-                        )
-                except Exception as e:
-                    log.critical(f"Error calling function: {name} with args: {args} - {e}")
-                    tool_output = "In this moment I can't process this request."
-                    msg = ToolMessage(tool_output, tool_call_id=id)
-                    messages.append(msg)
-                    # Impact on history store, on the background
-                    asyncio.create_task(
-                        history_store.append_to_history(
-                            ctx.lead,
-                            msg)
-                        )
-                    break
-
-            # Process response
-            response = llm_with_tools.invoke(messages)
-        else:
-            yield StreamContentChunk(content=response.content, is_partial=True)
-            break
+    try:
+        async for delta in llm_with_tools.astream(messages):
+            assert isinstance(delta, AIMessageChunk)
+            if response is None:
+                response = delta
+            else:
+                response += delta    
         
+            # if delta.content:
+            #     # Shield the content from the response
+            #     yield StreamContentChunk(content=delta.content, is_partial=True)
+        
+        # Append the final response
+        messages.append(response)
+        # Impact on history store, on the background
+        asyncio.create_task(history_store.append_to_history(ctx.lead, response))            
+
+
+        # Allow for multiple function calls in a single message request
+        for idx in range(ctx.settings.core_max_function_calls_in_message):
+            if response.tool_calls:
+                # Do all function calls
+                for tool_call in response.tool_calls: 
+                    name = tool_call.get("name")
+                    args = tool_call.get("args")
+                    id = tool_call.get("id")
+                    log.debug(f"Function: {name} called with params: {args}")
+                    try:
+                        mtool_call = MacawFunctionCall(name, args, id)
+                        func_output: FunctionResponse = await on_function_call(ctx, mtool_call)
+
+                        msg = ToolMessage(func_output.text, tool_call_id=id)
+                        messages.append(msg)
+                        # Impact on history store, on the background
+                        asyncio.create_task(
+                            history_store.append_to_history(
+                                ctx.lead,
+                                msg)
+                            )
+                    except Exception as e:
+                        log.critical(f"Error calling function: {name} with args: {args} - {e}")
+                        tool_output = "In this moment I can't process this request."
+                        msg = ToolMessage(tool_output, tool_call_id=id)
+                        messages.append(msg)
+                        # Impact on history store, on the background
+                        asyncio.create_task(
+                            history_store.append_to_history(
+                                ctx.lead,
+                                msg)
+                            )
+                        break
+
+                # Process response
+                response = llm_with_tools.invoke(messages)
+            else:
+                yield StreamContentChunk(content=response.content, is_partial=True)
+                break
+            
+    except Exception as e:
+        raise ValueError("Macaw NLP: Error processing message") from e
+    
 
 
 @traceable
