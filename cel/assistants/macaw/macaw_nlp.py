@@ -125,10 +125,8 @@ async def process_new_message(ctx: MacawNlpInferenceContext, message: str, on_fu
     messages.append(input_msg)
     
     
-    # Impact on history store, on the background
-    asyncio.create_task(
-        history_store.append_to_history(ctx.lead, input_msg)
-    )
+    # Impact on history store
+    await history_store.append_to_history(ctx.lead, input_msg)
     
     response = None
     try:
@@ -138,15 +136,11 @@ async def process_new_message(ctx: MacawNlpInferenceContext, message: str, on_fu
                 response = delta
             else:
                 response += delta    
-        
-            # if delta.content:
-            #     # Shield the content from the response
-            #     yield StreamContentChunk(content=delta.content, is_partial=True)
-        
+                
         # Append the final response
         messages.append(response)
         # Impact on history store, on the background
-        asyncio.create_task(history_store.append_to_history(ctx.lead, response))            
+        await history_store.append_to_history(ctx.lead, response)
 
 
         # Allow for multiple function calls in a single message request
@@ -160,27 +154,29 @@ async def process_new_message(ctx: MacawNlpInferenceContext, message: str, on_fu
                     log.debug(f"Function: {name} called with params: {args}")
                     try:
                         mtool_call = MacawFunctionCall(name, args, id)
-                        func_output: FunctionResponse = await on_function_call(ctx, mtool_call)
+                        func_output = await on_function_call(ctx, mtool_call)
+                        
+                        response_text = None
+                        if isinstance(func_output, FunctionResponse):
+                            response_text = func_output.text
+                        elif isinstance(func_output, str):
+                            response_text = func_output
+                        else:
+                            response_text = f"Error processing function call: {func_output}"
 
-                        msg = ToolMessage(func_output.text, tool_call_id=id)
+                        msg = ToolMessage(response_text, tool_call_id=id)
                         messages.append(msg)
-                        # Impact on history store, on the background
-                        asyncio.create_task(
-                            history_store.append_to_history(
-                                ctx.lead,
-                                msg)
-                            )
+                        # Impact on history store
+                        await history_store.append_to_history(ctx.lead, msg)
+                        log.debug(f"History udpated: func: {name} called with params: {args} -> {response_text}")
+                            
                     except Exception as e:
                         log.critical(f"Error calling function: {name} with args: {args} - {e}")
                         tool_output = "In this moment I can't process this request."
                         msg = ToolMessage(tool_output, tool_call_id=id)
                         messages.append(msg)
-                        # Impact on history store, on the background
-                        asyncio.create_task(
-                            history_store.append_to_history(
-                                ctx.lead,
-                                msg)
-                            )
+                        # Impact on history store
+                        await history_store.append_to_history(ctx.lead, msg)
                         break
 
                 # Process response
