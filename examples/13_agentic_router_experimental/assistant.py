@@ -64,13 +64,12 @@ assistants = [build_balance_agent(), build_transfer_agent()]
 
 # Instantiate the Agentic Router
 ast = AgenticRouter(assistants=assistants)
-main = LogicRouter(assistants=[None, ast], assistant_selector_func=lambda x: 1 if x == "transfer" else 0)
 
 
 # Create the Message Gateway - This component is the core of the assistant
 # It handles the communication between the assistant and the connectors
 gateway = MessageGateway(
-    assistant=main,
+    assistant=ast,
     host="127.0.0.1", port=5004
 )
 
@@ -79,6 +78,7 @@ conn = TelegramConnector(
     token=os.environ.get("TELEGRAM_TOKEN"), 
     stream_mode=StreamMode.FULL
 )
+
 # Register the connector with the gateway
 gateway.register_connector(conn)
 
