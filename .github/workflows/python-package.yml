@@ -54,11 +54,13 @@ jobs:
         git config --global user.email "github-actions[bot]@users.noreply.github.com"
         git config --global user.name "GitHub Actions"
         bump2version patch --allow-dirty
+        poetry lock --no-update
         cat pyproject.toml | grep version
 
     - name: Commit and Push changes
       run: |
          git add pyproject.toml
+         git add poetry.lock
          git commit -m "Increment version [skip ci]" || echo "No changes to commit"
          git push origin main
       env:
