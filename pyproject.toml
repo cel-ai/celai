@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "celai"
-version = "0.3.4"
+version = "0.3.5"
 description = "AI Driven Communication Platform. Assistants made easy."
 authors = ["Alex Martin <alejamp@gmail.com>"]
 readme = "README.md"
@@ -39,7 +39,7 @@ beautifulsoup4 = ">=4.12.3"
 lxml = ">=5.2.2"
 shortuuid = ">=1.0.13"
 dictdiffer = ">=0.9.0"
-pysbd = ">=0.3.4"
+pysbd = ">=0.3.5"
 deepgram-sdk = ">=3.2.7"
 geopy = ">=2.4.1"
 langchain = ">=0.2.0"
