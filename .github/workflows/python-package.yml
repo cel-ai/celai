@@ -16,8 +16,8 @@ jobs:
     runs-on: ubuntu-latest
     environment: release
     permissions:
-      # IMPORTANT: this permission is mandatory for trusted publishing
       id-token: write
+      contents: write  # required for commiting version changes
 
     strategy:
       fail-fast: false
@@ -26,46 +26,47 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
+
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v3
       with:
         python-version: ${{ matrix.python-version }}
+
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        python -m pip install flake8 pytest
+        python -m pip install flake8 pytest bump2version
         pip install poetry
         poetry install --with dev
+
+    - name: Auto-increment version
+      run: |
+        bump2version patch --allow-dirty
+
+    - name: Commit version change
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        git config --global user.email "github-actions[bot]@users.noreply.github.com"
+        git config --global user.name "GitHub Actions"
+        git add pyproject.toml
+        git commit -m "Increment version [skip ci]"
+        git push
+
     - name: Lint with flake8
       run: |
-        # stop the build if there are Python syntax errors or undefined names
         flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
-        # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
         flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+
     - name: Test with pytest
       env:
         OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
       run: |
         poetry run pytest
+
     - name: Build package
       run: |
         poetry build
+
     - name: Publish package
       uses: pypa/gh-action-pypi-publish@release/v1.9
-
-    # - name: Configure Git Credentials
-    #   run: |
-    #     git config user.name github-actions[bot]
-    #     git config user.email 41898282+github-actions[bot]@users.noreply.github.com
-
-    # - name: Install MkDocs
-    #   run: pip install mkdocs-material 
-
-    # - name: Build and Deploy to GitHub Pages
-    #   run: mkdocs gh-deploy --force
-
-    # - name: Deploy to GitHub Pages
-    #   uses: peaceiris/actions-gh-pages@v3
-    #   with:
-    #     github_token: ${{ secrets.GITHUB_TOKEN }}
-    #     publish_dir: ./site
