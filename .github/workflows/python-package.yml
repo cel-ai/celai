@@ -10,9 +10,12 @@ on:
     branches: [ "main" ]
   pull_request:
     branches: [ "main" ]
+    types: [closed] # Run after PR is merged
 
 jobs:
   build:
+    if: ${{ github.event.pull_request.merged == true }} 
+    # Run after PR is merged
     runs-on: ubuntu-latest
     environment: release
     permissions:
