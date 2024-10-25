@@ -53,7 +53,7 @@ jobs:
         git config --global user.name "GitHub Actions"
         git add pyproject.toml
         git commit -m "Increment version [skip ci]"
-        git push
+        git push origin main
 
     - name: Lint with flake8
       run: |
