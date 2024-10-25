@@ -92,7 +92,7 @@ histoy_store = RedisHistoryProviderAsync(ListRedisStoreAsync(
 
 ast = MacawAssistant(
     prompt=prompt_template,
-    settings=MacawSettings(core_history_window_length=3),
+    # settings=MacawSettings(core_history_window_length=3),
     state_store=state_store,
     history_store=histoy_store
 )
@@ -112,6 +112,14 @@ async def handle_message(session, ctx: RequestContext):
 async def handle_get_crypto_price(session, params, ctx: FunctionContext):    
     log.debug(f"Got get_crypto_price command with params: {params}")
     asset = params['asset']
+    
+    if asset == "ETH":
+        # Emnulate a missing asset
+        return None
+    
+    if asset == "DOGE":
+        # Emnulate an error
+        raise Exception("DOGE is not supported")
     
     try:
         #  Request to Coinbase API
