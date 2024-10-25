@@ -105,9 +105,7 @@ async def process_new_message(ctx: MacawNlpInferenceContext, message: str, on_fu
     messages = [SystemMessage(prompt)]
     
     # Load messages from store
-    msgs = await history_store.get_last_messages(
-        ctx.lead, 
-        ctx.settings.core_history_window_length) or []
+    msgs = await history_store.get_history(ctx.lead) or []
     
     try:
         msgs = get_last_n_elements(msgs, ctx.settings.core_history_window_length)
@@ -176,9 +174,12 @@ async def process_new_message(ctx: MacawNlpInferenceContext, message: str, on_fu
                         # Impact on history store
                         await history_store.append_to_history(ctx.lead, msg)
 
-                        break
-                        # If one function fails, the rest of the functions are not called?
+                        # break
+                        # NOTE: If one function fails, the rest of the functions are not called?
                         # This is a design decision, we can change it later.
+                        # ----------
+                        # NOTE: Removed due broken behavior. If one function fails, the history ends badly. 
+                        # ToolCall messages end with no ToolMessage. It's better to have a message with the error.
 
                 # Process response
                 response = llm_with_tools.invoke(messages)
