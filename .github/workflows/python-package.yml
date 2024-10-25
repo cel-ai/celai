@@ -39,6 +39,16 @@ jobs:
         pip install poetry
         poetry install --with dev
 
+    - name: Set up Git credentials for pushing
+      run: git remote set-url origin https://x-access-token:${GITHUB_TOKEN}@github.com/${{ github.repository }}.git
+      env:
+       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Configure Git user
+      run: |
+       git config --global user.email "github-actions[bot]@users.noreply.github.com"
+       git config --global user.name "GitHub Actions"
+      
     - name: Auto-increment version
       run: |
         git config --global user.email "github-actions[bot]@users.noreply.github.com"
@@ -46,15 +56,13 @@ jobs:
         bump2version patch --allow-dirty
         cat pyproject.toml | grep version
 
-    - name: Commit version change
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    - name: Commit and Push changes
       run: |
-        git config --global user.email "github-actions[bot]@users.noreply.github.com"
-        git config --global user.name "GitHub Actions"
-        git add pyproject.toml
-        git commit -m "Increment version [skip ci]"
-        git push origin main
+         git add pyproject.toml
+         git commit -m "Increment version [skip ci]" || echo "No changes to commit"
+         git push origin main
+      env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  
 
     - name: Lint with flake8
       run: |
