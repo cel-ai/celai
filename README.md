@@ -122,7 +122,7 @@ gateway = MessageGateway(
 conn = TelegramConnector(
     token="<YOUR_TELEGRAM_TOKEN>"
 )
-                         
+                          
 # Register the connector with the gateway
 gateway.register_connector(conn)
 
