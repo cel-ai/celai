@@ -7,7 +7,7 @@ from cel.assistants.function_response import FunctionResponse
 from cel.assistants.macaw.custom_chat_models.chat_open_router import ChatOpenRouter
 from cel.assistants.macaw.macaw_inference_context import MacawNlpInferenceContext
 from cel.assistants.macaw.macaw_history_adapter import MacawHistoryAdapter
-from cel.assistants.macaw.macaw_utils import map_functions_to_tool_messages
+from cel.assistants.macaw.macaw_utils import get_last_n_elements, map_functions_to_tool_messages
 from cel.assistants.stream_content_chunk import StreamContentChunk
 from langchain_openai import ChatOpenAI
 from langchain_core.messages import HumanMessage, ToolMessage, AIMessageChunk
@@ -107,14 +107,10 @@ async def process_new_message(ctx: MacawNlpInferenceContext, message: str, on_fu
     # Load messages from store
     msgs = await history_store.get_last_messages(
         ctx.lead, 
-        ctx.settings.core_history_window_length + 2) or []
+        ctx.settings.core_history_window_length) or []
     
-    if msgs and len(msgs) > ctx.settings.core_history_window_length:
-        #  Messages: position 0 is the last message
-        #  Avoid error: 
-        #  Invalid parameter: messages with role 'tool' must be a response to a preceeding message with 'tool_calls'
-        if msgs[0].type == "tool":
-            msgs = msgs[1:]
+   
+    msgs = get_last_n_elements(msgs, ctx.settings.core_history_window_length)
             
     
     # Map to BaseMessages and append to messages
@@ -162,14 +158,14 @@ async def process_new_message(ctx: MacawNlpInferenceContext, message: str, on_fu
                         elif isinstance(func_output, str):
                             response_text = func_output
                         else:
-                            response_text = f"Error processing function call: {func_output}"
+                            response_text = "Data not found"
 
                         msg = ToolMessage(response_text, tool_call_id=id)
                         messages.append(msg)
                         # Impact on history store
                         await history_store.append_to_history(ctx.lead, msg)
                         log.debug(f"History udpated: func: {name} called with params: {args} -> {response_text}")
-                            
+
                     except Exception as e:
                         log.critical(f"Error calling function: {name} with args: {args} - {e}")
                         tool_output = "In this moment I can't process this request."
@@ -177,7 +173,10 @@ async def process_new_message(ctx: MacawNlpInferenceContext, message: str, on_fu
                         messages.append(msg)
                         # Impact on history store
                         await history_store.append_to_history(ctx.lead, msg)
+
                         break
+                        # If one function fails, the rest of the functions are not called?
+                        # This is a design decision, we can change it later.
 
                 # Process response
                 response = llm_with_tools.invoke(messages)
