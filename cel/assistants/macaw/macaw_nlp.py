@@ -109,8 +109,10 @@ async def process_new_message(ctx: MacawNlpInferenceContext, message: str, on_fu
         ctx.lead, 
         ctx.settings.core_history_window_length) or []
     
-   
-    msgs = get_last_n_elements(msgs, ctx.settings.core_history_window_length)
+    try:
+        msgs = get_last_n_elements(msgs, ctx.settings.core_history_window_length)
+    except Exception as e:
+        log.critical(f"Error get_last_n_elements: {e}")
             
     
     # Map to BaseMessages and append to messages
