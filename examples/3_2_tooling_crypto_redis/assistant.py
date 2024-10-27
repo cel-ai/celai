@@ -86,13 +86,10 @@ prompt_template = PromptTemplate(prompt, initial_state={
 
 
 state_store = RedisChatStateProvider(redis="redis://localhost:6379/0")
-histoy_store = RedisHistoryProviderAsync(ListRedisStoreAsync(
-    redis="redis://default:uUUcEkbHeZKiiQKckqUpqkRKAvVGOxJQ@autorack.proxy.rlwy.net:52598", 
-    key_prefix="h:ale"))
+histoy_store = RedisHistoryProviderAsync(ListRedisStoreAsync(redis="redis://localhost:6379/0"))
 
 ast = MacawAssistant(
     prompt=prompt_template,
-    # settings=MacawSettings(core_history_window_length=3),
     state_store=state_store,
     history_store=histoy_store
 )

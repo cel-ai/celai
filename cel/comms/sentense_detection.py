@@ -74,14 +74,17 @@ if __name__ == "__main__":
 
     # #  SYNC TEST
     # ---------------------------------------------------------------------
-    text_stream = iter(text)
-    for sentence in streaming_sentence_detector(text_stream):
-        print(sentence)
-        print ("----------------------")
+    # text_stream = iter(text)
+    
+    
+    
+    # for sentence in streaming_sentence_detector(text_stream):
+    #     print(sentence)
+    #     print ("----------------------")
 
 
-    print ("-----------DONE-----------")
-    print ("-----------DONE-----------")
+    # print ("-----------DONE-----------")
+    # print ("-----------DONE-----------")
 
 
     # ASYNC TEST
@@ -95,7 +98,7 @@ if __name__ == "__main__":
 
         async def __anext__(self):
             try:
-                value = next(self.iterable)
+                value = StreamContentChunk(content=next(self.iterable), is_partial=True)
             except StopIteration:
                 raise StopAsyncIteration
             await asyncio.sleep(0)  # This makes this method asynchronous
@@ -106,8 +109,11 @@ if __name__ == "__main__":
         # ASYNC
         import asyncio
         text_stream = AsyncIterable(iter(text))
+        
+        count = 0
         async for sentence in streaming_sentence_detector_async(text_stream):
-            print(sentence)
+            print(f"Sentence {count}::: {sentence.content}")
+            count +=1
             print ("----------------------")        
         
         
