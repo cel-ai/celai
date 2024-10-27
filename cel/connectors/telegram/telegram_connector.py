@@ -122,7 +122,7 @@ class TelegramConnector(BaseConnector):
                 
         except Exception as e:
             # TODO: TEST!
-            log.error(f"Error processing telegram webhook: {e}")
+            log.exception("Error processing message", e)
             try:
                 if self.report_errors_to_telegram:
                     if isinstance(msg, dict):

@@ -102,7 +102,7 @@ async def process_new_message(ctx: MacawNlpInferenceContext, message: str, on_fu
 
     
     # Prompt > System Message
-    messages = [SystemMessage(prompt)]
+    persisted_messages = [SystemMessage(prompt)]
     
     # Load messages from store
     msgs = await history_store.get_history(ctx.lead) or []
@@ -114,81 +114,141 @@ async def process_new_message(ctx: MacawNlpInferenceContext, message: str, on_fu
             
     
     # Map to BaseMessages and append to messages
-    messages.extend(msgs)
+    persisted_messages.extend(msgs)
     
     # Add the human message
     input_msg = HumanMessage(message)
-    messages.append(input_msg)
     
+    # New messages is a list of messages to be added to the history
+    # This is used to store the new messages in the history store: input_msg (HumanMessage) and responses.
+    new_messages = [input_msg]
+    # messages.append(input_msg)
     
-    # Impact on history store
-    await history_store.append_to_history(ctx.lead, input_msg)
+    # Impact on history store in background
+    # asyncio.create_task(history_store.append_to_history(ctx.lead, input_msg))
     
     response = None
     try:
-        async for delta in llm_with_tools.astream(messages):
+        async for delta in llm_with_tools.astream(persisted_messages + new_messages):
             assert isinstance(delta, AIMessageChunk)
             if response is None:
                 response = delta
             else:
-                response += delta    
+                response += delta
                 
-        # Append the final response
-        messages.append(response)
-        # Impact on history store, on the background
-        await history_store.append_to_history(ctx.lead, response)
+            # Yield the response if it's not a tool call
+            if not response.tool_calls:
+                yield StreamContentChunk(content=delta.content, is_partial=True)
+                
+                
+        # Now we have the full response
+        # Append Response to history (only memory)
+        new_messages.append(response)
+        
+        # if it's a tool call
+        if response.tool_calls:
+            # We have tool calls, we need to process them
+            # Handle multiple function calls and chained calls 
+            # We use a for... to handle chained function calls until 
+            # the max number of calls is reached
+            # easy way to avoid infinite loop$
+                
+            for idx in range(ctx.settings.core_max_function_calls_in_message):
+                if response.tool_calls:
+                    # Do all function calls
+                    for tool_call in response.tool_calls: 
+                        name = tool_call.get("name")
+                        args = tool_call.get("args")
+                        id = tool_call.get("id")
+                        log.debug(f"Function: {name} called with params: {args}")
+                        try:
+                            mtool_call = MacawFunctionCall(name, args, id)
+                            func_output = await on_function_call(ctx, mtool_call)
+                            
+                            response_text = None
+                            if isinstance(func_output, FunctionResponse):
+                                response_text = func_output.text
+                            elif isinstance(func_output, str):
+                                response_text = func_output
+                            else:
+                                response_text = "Data not found"
 
+                            msg = ToolMessage(response_text, tool_call_id=id)
+                            new_messages.append(msg)
+                            # Impact on history store
+                            await history_store.append_to_history(ctx.lead, msg)
+                            log.debug(f"History udpated: func: {name} called with params: {args} -> {response_text}")
 
-        # Allow for multiple function calls in a single message request
-        for idx in range(ctx.settings.core_max_function_calls_in_message):
-            if response.tool_calls:
-                # Do all function calls
-                for tool_call in response.tool_calls: 
-                    name = tool_call.get("name")
-                    args = tool_call.get("args")
-                    id = tool_call.get("id")
-                    log.debug(f"Function: {name} called with params: {args}")
-                    try:
-                        mtool_call = MacawFunctionCall(name, args, id)
-                        func_output = await on_function_call(ctx, mtool_call)
-                        
-                        response_text = None
-                        if isinstance(func_output, FunctionResponse):
-                            response_text = func_output.text
-                        elif isinstance(func_output, str):
-                            response_text = func_output
-                        else:
-                            response_text = "Data not found"
+                        except Exception as e:
+                            log.critical(f"Error calling function: {name} with args: {args} - {e}")
+                            tool_output = "In this moment I can't process this request."
+                            msg = ToolMessage(tool_output, tool_call_id=id)
+                            new_messages.append(msg)
+                            # Impact on history store
+                            await history_store.append_to_history(ctx.lead, msg)
 
-                        msg = ToolMessage(response_text, tool_call_id=id)
-                        messages.append(msg)
-                        # Impact on history store
-                        await history_store.append_to_history(ctx.lead, msg)
-                        log.debug(f"History udpated: func: {name} called with params: {args} -> {response_text}")
+                            # break
+                            # NOTE: If one function fails, the rest of the functions are not called?
+                            # This is a design decision, we can change it later.
+                            # ----------
+                            # NOTE: Removed due broken behavior. If one function fails, the history ends badly. 
+                            # ToolCall messages end with no ToolMessage. It's better to have a message with the error.
 
-                    except Exception as e:
-                        log.critical(f"Error calling function: {name} with args: {args} - {e}")
-                        tool_output = "In this moment I can't process this request."
-                        msg = ToolMessage(tool_output, tool_call_id=id)
-                        messages.append(msg)
-                        # Impact on history store
-                        await history_store.append_to_history(ctx.lead, msg)
-
-                        # break
-                        # NOTE: If one function fails, the rest of the functions are not called?
-                        # This is a design decision, we can change it later.
-                        # ----------
-                        # NOTE: Removed due broken behavior. If one function fails, the history ends badly. 
-                        # ToolCall messages end with no ToolMessage. It's better to have a message with the error.
-
-                # Process response
-                response = llm_with_tools.invoke(messages)
+                    # Process response
+                    response = llm_with_tools.invoke(persisted_messages + new_messages)
+                else:
+                    yield StreamContentChunk(content=response.content, is_partial=True)
+                    break
+                
+            # Here we have finished the loop and we got the whole list of new_messages to be stored in the history
+            # Last step is to verify that the new_messages list is valid and store it in the history
+            # Validating the list is important to avoid storing invalid messages sequences in the history
+            # Corrupted history can lead to a blocking error for this user in the future
+            # First message must be a HumanMessage
+            if new_messages[0].type != "human":
+                raise ValueError("Macaw NLP process_message: First message must be a HumanMessage")
+            
+            # Second message must be a AIMessageChunk
+            # with additional arguments for tool calls
+            if not isinstance(new_messages[1], AIMessageChunk):
+                raise ValueError("Macaw NLP process_message: Second message must be a AIMessageChunk")
             else:
-                yield StreamContentChunk(content=response.content, is_partial=True)
-                break
+                if not new_messages[1].tool_calls:
+                    raise ValueError("Macaw NLP process_message: Second message must have tool calls")
+                
+            tool_calls = new_messages[1].tool_calls
+            
+            # Each message from 2 to n-1 must be a ToolMessage
+            for msg in new_messages[2:-1]:
+                if not isinstance(msg, ToolMessage):
+                    raise ValueError("Macaw NLP process_message: Messages from 2 to n-1 must be ToolMessages")
+            
+            # The number of tool calls must be the same as the number of ToolMessages
+            if len(tool_calls) != (len(new_messages)-2):
+                raise ValueError("Macaw NLP process_message: Number of tool calls must be the same as the number of ToolMessages") 
+
+            # If all the validations are passed, we can store the new_messages in the history
+            # TODO: add support for storing batch messages
+            for msg in new_messages:
+                await history_store.append_to_history(ctx.lead, msg)
+
+            log.debug(f"Validated history store udpated with tool calls: {len(new_messages)} messages stored, session: {ctx.lead.get_session_id()}")
+        else:
+            # No tool calls, we can store the new_messages in the history
+            # TODO: add support for storing batch messages
+            for msg in new_messages:
+                await history_store.append_to_history(ctx.lead, msg)
+            log.debug(f"History store udpated: {len(new_messages)} messages stored, session: {ctx.lead.get_session_id()}")
+
             
     except Exception as e:
+        # Leave the unhandled user message in the history?????
+        # TODO: Check if this is the correct behavior
+        await history_store.append_to_history(ctx.lead, response)
+        
         raise ValueError("Macaw NLP: Error processing message") from e
+
+        
     
 
 

@@ -311,111 +311,113 @@ class MessageGateway:
             ```
         """
         
+        try:
+            assert message is not None, "Message is None"
+            assert isinstance(message, Message), "Message is not of type Message"
+            # assert mode in [StreamMode.SENTENCE, 
+            #                 StreamMode.FULL, 
+            #                 StreamMode.DIRECT], "Invalid StreamMode"
+            
+            
+            log.warning(f"Handling message: {message}")
+            connector = message.lead.connector
+            lead = message.lead
+            
+            if not await self.__process_middlewares(message):
+                log.warning(f"Message {message.lead.get_session_id()} rejected by middlewares")
+                return
+            
+            if not await self.__process_client_command(message):
+                return
+            
+            if not await self.__process_events(message):
+                log.warning("Event response has disabled AI response")
+                return
+            
+            await connector.send_typing_action(lead)
+            if self.assistant:
 
-        assert message is not None, "Message is None"
-        assert isinstance(message, Message), "Message is not of type Message"
-        # assert mode in [StreamMode.SENTENCE, 
-        #                 StreamMode.FULL, 
-        #                 StreamMode.DIRECT], "Invalid StreamMode"
-        
-        
-        log.warning(f"Handling message: {message}")
-        connector = message.lead.connector
-        lead = message.lead
-        
-        if not await self.__process_middlewares(message):
-            log.warning(f"Message {message.lead.get_session_id()} rejected by middlewares")
-            return
-        
-        if not await self.__process_client_command(message):
-            return
-        
-        if not await self.__process_events(message):
-            log.warning("Event response has disabled AI response")
-            return
-        
-        await connector.send_typing_action(lead)
-        if self.assistant:
-
-            # Langsmith Tracing 
-            from langsmith.run_trees import RunTree
-            rt = RunTree(name="Chat Message")
-            try:
-                rt.add_metadata({
-                    "session_id": lead.get_session_id(),
-                    "lead_metadata": lead.metadata
-                })
-                rt.add_tags(["message", lead.connector_name])
-                
-                with tracing_context(parent=rt):
-                    stream = self.assistant.new_message(message, {})
-                    content = ''
+                # Langsmith Tracing 
+                from langsmith.run_trees import RunTree
+                rt = RunTree(name="Chat Message")
+                try:
+                    rt.add_metadata({
+                        "session_id": lead.get_session_id(),
+                        "lead_metadata": lead.metadata
+                    })
+                    rt.add_tags(["message", lead.connector_name])
                     
-                    if mode == StreamMode.SENTENCE:
-                        rt.add_tags("sentence")
-                        async for sentence in streaming_sentence_detector_async(stream): 
-                            assert isinstance(sentence, StreamContentChunk), "stream must be a StreamChunk"
-                            content += sentence.content
-                            
-                            if capture_repsonse:
-                                yield sentence
-                                # pass
-                            else:
-                                # Send the sentence to the connector
-                                await self.dispatch_outgoing_genai_message(message, 
-                                                                    text=sentence.content, 
-                                                                    is_partial=sentence.is_partial)
-                                await connector.send_typing_action(message.lead)
-                                # Time delation based on the length of the sentence
-                                if self.delivery_rate_control:
-                                    length = len(sentence.content)
-                                    wait_time = length / self.delivery_rate_control_ratio
-                                    await asyncio.sleep(wait_time)
+                    with tracing_context(parent=rt):
+                        stream = self.assistant.new_message(message, {})
+                        content = ''
+                        
+                        if mode == StreamMode.SENTENCE:
+                            rt.add_tags("sentence")
+                            async for sentence in streaming_sentence_detector_async(stream): 
+                                assert isinstance(sentence, StreamContentChunk), "stream must be a StreamChunk"
+                                content += sentence.content
+                                
+                                if capture_repsonse:
+                                    yield sentence
+                                    # pass
+                                else:
+                                    # Send the sentence to the connector
+                                    await self.dispatch_outgoing_genai_message(message, 
+                                                                        text=sentence.content, 
+                                                                        is_partial=sentence.is_partial)
+                                    await connector.send_typing_action(message.lead)
+                                    # Time delation based on the length of the sentence
+                                    if self.delivery_rate_control:
+                                        length = len(sentence.content)
+                                        wait_time = length / self.delivery_rate_control_ratio
+                                        await asyncio.sleep(wait_time)
 
 
-                    if mode == StreamMode.DIRECT:
-                        rt.add_tags("direct")
-                        async for chunk in stream:
-                            assert isinstance(chunk, StreamContentChunk), "stream must be a StreamChunk"
-                            content += chunk.content
-                            
-                            if capture_repsonse:
-                                yield chunk
-                                # pass
-                            else:
-                                await self.dispatch_outgoing_genai_message(message, text=chunk.content, is_partial=chunk.is_partial)
-                                await connector.send_typing_action(message.lead)
+                        if mode == StreamMode.DIRECT:
+                            rt.add_tags("direct")
+                            async for chunk in stream:
+                                assert isinstance(chunk, StreamContentChunk), "stream must be a StreamChunk"
+                                content += chunk.content
+                                
+                                if capture_repsonse:
+                                    yield chunk.content
+                                    # pass
+                                else:
+                                    await self.dispatch_outgoing_genai_message(message, text=chunk.content, is_partial=chunk.is_partial)
+                                    await connector.send_typing_action(message.lead)
 
-                    
-                    if mode == StreamMode.FULL:
-                        rt.add_tags("full")
-                        await connector.send_typing_action(message.lead)
-                        async for chunk in stream:
-                            assert isinstance(chunk, StreamContentChunk), "stream must be a StreamChunk"
-                            content += chunk.content
-                            
+                        
+                        if mode == StreamMode.FULL:
+                            rt.add_tags("full")
+                            await connector.send_typing_action(message.lead)
+                            async for chunk in stream:
+                                assert isinstance(chunk, StreamContentChunk), "stream must be a StreamChunk"
+                                content += chunk.content
+                                
                             if capture_repsonse:
                                 yield chunk.content
                                 # pass
                             else:
                                 await self.dispatch_outgoing_genai_message(message, text=content, is_partial=False)
-                            
-                    log.debug(f"Assistant response: {content}")
-                    
+                                
+                        log.debug(f"Assistant response: {content}")
+                        
+                except Exception as e:
+                    rt.end(error=str(e))
+                    raise e
+                finally:
                     rt.end()
                     rt.post()
-            except Exception as e:
-                rt.end(error=str(e))
-                rt.post()
-                raise e
-        else: 
-            log.critical("No assistant available")
-            if capture_repsonse:
-                yield "No assistant available"
-                # pass
-            else:
-                await connector.send_text_message(message.lead, text="No assistant available")
-
+            else: 
+                log.critical("No assistant available")
+                if capture_repsonse:
+                    yield "No assistant available"
+                    # pass
+                else:
+                    await connector.send_text_message(message.lead, text="No assistant available")
+        except Exception as e:
+            log.error(f"Message Gateway Error: {e}")
+            raise ValueError("Message Gateway Error") from e
 
     @staticmethod
     async def send_text_message(lead: ConversationLead, 
