@@ -175,8 +175,6 @@ async def process_new_message(ctx: MacawNlpInferenceContext, message: str, on_fu
 
                             msg = ToolMessage(response_text, tool_call_id=id)
                             new_messages.append(msg)
-                            # Impact on history store
-                            await history_store.append_to_history(ctx.lead, msg)
                             log.debug(f"History udpated: func: {name} called with params: {args} -> {response_text}")
 
                         except Exception as e:
@@ -184,8 +182,6 @@ async def process_new_message(ctx: MacawNlpInferenceContext, message: str, on_fu
                             tool_output = "In this moment I can't process this request."
                             msg = ToolMessage(tool_output, tool_call_id=id)
                             new_messages.append(msg)
-                            # Impact on history store
-                            await history_store.append_to_history(ctx.lead, msg)
 
                             # break
                             # NOTE: If one function fails, the rest of the functions are not called?
