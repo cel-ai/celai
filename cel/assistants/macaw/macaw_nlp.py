@@ -106,7 +106,8 @@ async def process_new_message(ctx: MacawNlpInferenceContext, message: str, on_fu
     
     # Load messages from store
     msgs = await history_store.get_history(ctx.lead) or []
-    
+
+    # Slice the messages 
     try:
         msgs = get_last_n_elements(msgs, ctx.settings.core_history_window_length)
     except Exception as e:
@@ -122,13 +123,10 @@ async def process_new_message(ctx: MacawNlpInferenceContext, message: str, on_fu
     # New messages is a list of messages to be added to the history
     # This is used to store the new messages in the history store: input_msg (HumanMessage) and responses.
     new_messages = [input_msg]
-    # messages.append(input_msg)
-    
-    # Impact on history store in background
-    # asyncio.create_task(history_store.append_to_history(ctx.lead, input_msg))
     
     response = None
     try:
+        # Process LLM invoke in a stream
         async for delta in llm_with_tools.astream(persisted_messages + new_messages):
             assert isinstance(delta, AIMessageChunk)
             if response is None:
