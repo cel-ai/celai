@@ -23,6 +23,7 @@ Note:
 Please ensure you have the Cel.ai framework installed in your Python environment prior to running this script.
 """
 # LOAD ENV VARIABLES
+import json
 import os
 import time
 from urllib import request
@@ -116,7 +117,7 @@ async def handle_list_tasks(session, params, ctx: FunctionContext):
     manager = TaskManager(ctx.state_manager())
     tasks = await manager.get_tasks()
     
-    return ctx.response_text(f"Tasks: {'\n -'.join(tasks)}")
+    return ctx.response_text(f"Tasks: {json.dumps(tasks)}")
 # --------------------------------------------------------------------
 
 
