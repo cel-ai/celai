@@ -100,7 +100,7 @@ class ChromaStore(VectorStore):
         
     def upsert_text(self, id: str, text: str, metadata: dict):
         """Upsert a vector to the store"""
-        try
+        try:
             vector =  self.text2vec.text2vec(text)
             ## if vector is a string '[n,n,n.....]', convert it to a list
             if isinstance(vector, str):
