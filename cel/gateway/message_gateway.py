@@ -380,7 +380,7 @@ class MessageGateway:
                                 content += chunk.content
                                 
                                 if capture_repsonse:
-                                    yield chunk.content
+                                    yield chunk
                                     # pass
                                 else:
                                     await self.dispatch_outgoing_genai_message(message, text=chunk.content, is_partial=chunk.is_partial)
@@ -395,7 +395,7 @@ class MessageGateway:
                                 content += chunk.content
                                 
                             if capture_repsonse:
-                                yield chunk.content
+                                yield chunk
                                 # pass
                             else:
                                 await self.dispatch_outgoing_genai_message(message, text=content, is_partial=False)
