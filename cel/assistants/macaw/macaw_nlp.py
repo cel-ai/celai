@@ -102,32 +102,37 @@ async def process_new_message(ctx: MacawNlpInferenceContext, message: str, on_fu
 
     
     # Prompt > System Message
-    persisted_messages = [SystemMessage(prompt)]
+    history = [SystemMessage(prompt)]
     
     # Load messages from store
     msgs = await history_store.get_history(ctx.lead) or []
-
-    # Slice the messages 
-    try:
-        msgs = get_last_n_elements(msgs, ctx.settings.core_history_window_length)
-    except Exception as e:
-        log.critical(f"Error get_last_n_elements: {e}")
-            
     
-    # Map to BaseMessages and append to messages
-    persisted_messages.extend(msgs)
+    # append to messages
+    history.extend(msgs)
     
     # Add the human message
     input_msg = HumanMessage(message)
+    history.append(input_msg)
+        
+
+    # Slice the messages 
+    try:
+        history = get_last_n_elements(history, ctx.settings.core_history_window_length)
+    except Exception as e:
+        log.critical(f"Error get_last_n_elements: {e}")
+        # TODO: if we fail to get the last n elements, we should not process the message?
+        # We should return an error message to the user?
+        # or keep on processing the whole history?
+        # For now, we keep on processing the whole history
     
     # New messages is a list of messages to be added to the history
-    # This is used to store the new messages in the history store: input_msg (HumanMessage) and responses.
+    # This is used to store the new messages in the history store
     new_messages = [input_msg]
     
     response = None
     try:
         # Process LLM invoke in a stream
-        async for delta in llm_with_tools.astream(persisted_messages + new_messages):
+        async for delta in llm_with_tools.astream(history):
             assert isinstance(delta, AIMessageChunk)
             if response is None:
                 response = delta
@@ -189,7 +194,7 @@ async def process_new_message(ctx: MacawNlpInferenceContext, message: str, on_fu
                             # ToolCall messages end with no ToolMessage. It's better to have a message with the error.
 
                     # Process response
-                    response = llm_with_tools.invoke(persisted_messages + new_messages)
+                    response = llm_with_tools.invoke(history + new_messages)
                 else:
                     yield StreamContentChunk(content=response.content, is_partial=True)
                     break
