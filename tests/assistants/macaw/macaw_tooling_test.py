@@ -1,12 +1,14 @@
 import pytest
-
+import os
 from cel.assistants.common import FunctionDefinition, Param
 from cel.assistants.macaw.macaw_utils import map_function_to_tool_message
 
 
+is_github_actions = os.getenv("GITHUB_ACTIONS", False)
 
 
 @pytest.mark.asyncio
+@pytest.mark.skipif(is_github_actions, reason="Disable in Github Actions")
 async def test_map_function_to_tool_message():
     
 

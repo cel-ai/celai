@@ -2,7 +2,8 @@ import pytest
 from cel.rag.stores.chroma.chroma_store import ChromaStore
 from cel.rag.text2vec.cached_ollama import CachedOllamaEmbedding
 import os
-IS_RUNNING_IN_GITHUB_ACTION = os.getenv("GITHUB_ACTIONS") == "true"
+
+is_github_actions = os.getenv("GITHUB_ACTIONS", False)
 
 
 texts=[
@@ -19,12 +20,8 @@ def client():
     return ChromaStore(text2vec, collection_name='test_ollama_collection')
 
 
-    
+@pytest.mark.skipif(is_github_actions, reason="Disable in Github Actions")
 def test_store(client):
-    if IS_RUNNING_IN_GITHUB_ACTION: 
-        assert True
-        return
-        
     for t in texts:
         index = texts.index(t)
         client.upsert_text(f"{index}", t, {'metadata': 'metadata'})
@@ -41,10 +38,8 @@ def test_store(client):
     assert res[0].metadata == {'metadata': 'metadata'}
     
     
+@pytest.mark.skipif(is_github_actions, reason="Disable in Github Actions")    
 def test_store_get_vector(client):
-    if IS_RUNNING_IN_GITHUB_ACTION: 
-        assert True
-        return    
 
     res = client.get_vector('4')
     
@@ -52,11 +47,8 @@ def test_store_get_vector(client):
     assert res.text == 'This is a document about parrots'
     assert res.metadata == {'metadata': 'metadata'}
     
-def test_get_similar(client):
-    if IS_RUNNING_IN_GITHUB_ACTION: 
-        assert True
-        return    
-    
+@pytest.mark.skipif(is_github_actions, reason="Disable in Github Actions")
+def test_get_similar(client): 
     res = client.get_vector('1')
     
     similar = client.get_similar(res.vector, top_k=1)
@@ -64,12 +56,8 @@ def test_get_similar(client):
     assert len(similar) == 1
     assert similar[0].id == '1'
     
-    
+@pytest.mark.skipif(is_github_actions, reason="Disable in Github Actions")    
 def test_delete(client):
-    if IS_RUNNING_IN_GITHUB_ACTION: 
-        assert True
-        return
-        
     for t in texts:
         index = texts.index(t)
         client.upsert_text(f"{index}", t, {'metadata': 'metadata'})
