@@ -1,4 +1,5 @@
 import pytest
+import os
 import pytest_asyncio
 from cel.gateway.model.conversation_lead import ConversationLead
 from cel.gateway.model.outgoing.outgoing_message_link import OutgoingLinkMessage
@@ -7,7 +8,7 @@ from cel.gateway.model.outgoing.outgoing_message_text import OutgoingTextMessage
 from cel.message_enhancers.smart_message_enhancer_openai import SmartMessageEnhancerOpenAI
 
 
-
+is_github_actions = os.getenv("GITHUB_ACTIONS", "false").lower() == "true"
 
 @pytest_asyncio.fixture()
 async def adapter() -> SmartMessageEnhancerOpenAI:
@@ -15,6 +16,7 @@ async def adapter() -> SmartMessageEnhancerOpenAI:
 
 
 @pytest.mark.asyncio
+@pytest.mark.skipif(is_github_actions, reason="Disable in Github Actions")
 async def test_enhancer_select(adapter: SmartMessageEnhancerOpenAI):
     lead = ConversationLead()
     
@@ -35,6 +37,7 @@ async def test_enhancer_select(adapter: SmartMessageEnhancerOpenAI):
 
 
 @pytest.mark.asyncio
+@pytest.mark.skipif(is_github_actions, reason="Disable in Github Actions")
 async def test_enhancer_select_2(adapter: SmartMessageEnhancerOpenAI):
     lead = ConversationLead()
     
@@ -53,6 +56,7 @@ async def test_enhancer_select_2(adapter: SmartMessageEnhancerOpenAI):
 
 
 @pytest.mark.asyncio
+@pytest.mark.skipif(is_github_actions, reason="Disable in Github Actions")
 async def test_enhancer_link(adapter: SmartMessageEnhancerOpenAI):
     lead = ConversationLead()
     
@@ -68,6 +72,7 @@ async def test_enhancer_link(adapter: SmartMessageEnhancerOpenAI):
 
 
 @pytest.mark.asyncio
+@pytest.mark.skipif(is_github_actions, reason="Disable in Github Actions")
 async def test_enhancer_text(adapter: SmartMessageEnhancerOpenAI):
     lead = ConversationLead()
     
