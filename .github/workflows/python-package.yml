@@ -63,6 +63,7 @@ jobs:
 
     - name: Commit and Push changes
       run: |
+         git pull
          git add pyproject.toml
          git add poetry.lock
          git commit -m "Increment version [skip ci]" || echo "No changes to commit"
