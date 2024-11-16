@@ -5,7 +5,7 @@ from cel.rag.text2vec.cached_openai import CachedOpenAIEmbedding
 import dotenv
 dotenv.load_dotenv()
 
-is_github_actions = os.getenv("GITHUB_ACTIONS", False)
+is_github_actions = os.getenv("GITHUB_ACTIONS", "false").lower() == "true"
 
 
 texts=[

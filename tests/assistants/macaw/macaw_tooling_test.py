@@ -4,7 +4,7 @@ from cel.assistants.common import FunctionDefinition, Param
 from cel.assistants.macaw.macaw_utils import map_function_to_tool_message
 
 
-is_github_actions = os.getenv("GITHUB_ACTIONS", False)
+is_github_actions = os.getenv("GITHUB_ACTIONS", "false").lower() == "true"
 
 
 @pytest.mark.asyncio

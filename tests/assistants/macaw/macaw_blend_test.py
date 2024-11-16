@@ -10,7 +10,7 @@ from cel.stores.history.history_inmemory_provider import InMemoryHistoryProvider
 from cel.stores.state.state_inmemory_provider import InMemoryStateProvider
 from langchain_core.messages import HumanMessage
 
-is_github_actions = os.getenv("GITHUB_ACTIONS", False)
+is_github_actions = os.getenv("GITHUB_ACTIONS", "false").lower() == "true"
 
 @pytest.mark.asyncio
 @pytest.mark.skipif(is_github_actions, reason="Disable in Github Actions")
