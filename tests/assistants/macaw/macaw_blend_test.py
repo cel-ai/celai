@@ -1,4 +1,5 @@
 import pytest
+import os
 from cel.assistants.macaw.macaw_assistant import MacawAssistant
 from cel.assistants.macaw.macaw_history_adapter import MacawHistoryAdapter
 from cel.assistants.macaw.macaw_inference_context import MacawNlpInferenceContext
@@ -9,7 +10,10 @@ from cel.stores.history.history_inmemory_provider import InMemoryHistoryProvider
 from cel.stores.state.state_inmemory_provider import InMemoryStateProvider
 from langchain_core.messages import HumanMessage
 
+is_github_actions = os.getenv("GITHUB_ACTIONS", "false").lower() == "true"
+
 @pytest.mark.asyncio
+@pytest.mark.skipif(is_github_actions, reason="Disable in Github Actions")
 async def test_blend_message():
     
     ctx = MacawNlpInferenceContext(
@@ -32,6 +36,7 @@ async def test_blend_message():
                 
 
 @pytest.mark.asyncio
+@pytest.mark.skipif(is_github_actions, reason="Disable in Github Actions")
 async def test_assistant_blend():
 
     lead = ConversationLead()

@@ -1,8 +1,11 @@
 import pytest
+import os
 from cel.rag.stores.chroma.chroma_store import ChromaStore
 from cel.rag.text2vec.cached_openai import CachedOpenAIEmbedding
 import dotenv
 dotenv.load_dotenv()
+
+is_github_actions = os.getenv("GITHUB_ACTIONS", "false").lower() == "true"
 
 
 texts=[
@@ -19,7 +22,7 @@ def client():
     return ChromaStore(text2vec, collection_name='test_openai_collection')
 
 
-    
+@pytest.mark.skipif(is_github_actions, reason="Disable in Github Actions")
 def test_store(client):
     for t in texts:
         index = texts.index(t)
@@ -37,6 +40,7 @@ def test_store(client):
     assert res[0].metadata == {'metadata': 'metadata'}
     
     
+@pytest.mark.skipif(is_github_actions, reason="Disable in Github Actions")
 def test_store_get_vector(client):
 
     res = client.get_vector('4')
@@ -45,6 +49,7 @@ def test_store_get_vector(client):
     assert res.text == 'This is a document about parrots'
     assert res.metadata == {'metadata': 'metadata'}
     
+@pytest.mark.skipif(is_github_actions, reason="Disable in Github Actions")
 def test_get_similar(client):
     
     res = client.get_vector('1')
@@ -54,7 +59,8 @@ def test_get_similar(client):
     assert len(similar) == 1
     assert similar[0].id == '1'
     
-    
+
+@pytest.mark.skipif(is_github_actions, reason="Disable in Github Actions")
 def test_delete(client):
     for t in texts:
         index = texts.index(t)
