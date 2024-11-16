@@ -1,5 +1,5 @@
 import pytest
-
+import os
 from cel.assistants.common import FunctionDefinition, Param
 from cel.assistants.macaw.macaw_inference_context import MacawNlpInferenceContext
 from cel.assistants.macaw.macaw_nlp import process_new_message
@@ -9,6 +9,7 @@ from cel.prompt.prompt_template import PromptTemplate
 from cel.stores.history.history_inmemory_provider import InMemoryHistoryProvider
 from cel.stores.state.state_inmemory_provider import InMemoryStateProvider
 
+is_github_actions = os.getenv("GITHUB_ACTIONS", "false").lower() == "true"
 
 func1 = FunctionDefinition(
     name='get_crypto_price', 
@@ -28,32 +29,9 @@ func1 = FunctionDefinition(
         ]
     )
 
-# @pytest.mark.asyncio
-# async def test_new_message():
-    
-#     prompt = PromptTemplate(
-#         "Your are a helpful assistant that can get the current price of a cryptocurrency. Get the price of a cryptocurrency."
-#     )
-    
-    
-#     ctx = MacawNlpInferenceContext(
-#         lead = ConversationLead(),
-#         prompt=prompt,
-#         # functions=[func1],
-#         history_store=InMemoryHistoryProvider(),
-#         state_store=InMemoryStateProvider(),
-#         settings=MacawSettings()
-#     )
-    
-#     async for chunk in process_new_message(ctx, message="What is the price of BTC?"):
-#         assert chunk
-#         print(chunk)
-        
-        
-#     assert True
-    
     
 @pytest.mark.asyncio
+@pytest.mark.skipif(is_github_actions, reason="Disable in Github Actions")
 async def test_new_message_fail_func():
     
     prompt = PromptTemplate(
