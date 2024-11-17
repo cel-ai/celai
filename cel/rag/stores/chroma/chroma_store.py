@@ -100,7 +100,19 @@ class ChromaStore(VectorStore):
         
     def upsert_text(self, id: str, text: str, metadata: dict):
         """Upsert a vector to the store"""
-        vector =  self.text2vec.text2vec(text)
+        try:
+            vector =  self.text2vec.text2vec(text)
+            ## if vector is a string '[n,n,n.....]', convert it to a list
+            if isinstance(vector, str):
+                vector = [float(i) for i in vector[1:-1].split(',')]
+            ## if vector is a list of strings ['n','n','n'.....], convert it to a list of floats
+            if isinstance(vector[0], str):
+                vector = [float(i) for i in vector] 
+        except Exception as e:
+            log.error(f"Error converting vector: {e}")
+            vector = None
+        
+        
         self.collection.add(
             ids=[id],
             documents=text,
