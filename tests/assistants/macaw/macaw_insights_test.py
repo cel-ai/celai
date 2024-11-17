@@ -12,7 +12,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 
-is_openai_available = 'OPENAI_API_KEY' in os.environ
+is_openai_available = 'OPENAI_API_KEY' not in os.environ
 
 
 

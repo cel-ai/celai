@@ -3,7 +3,7 @@ from cel.rag.stores.chroma.chroma_store import ChromaStore
 from cel.rag.text2vec.cached_ollama import CachedOllamaEmbedding
 import os
 
-is_github_actions = 'OPENAI_API_KEY' in os.environ
+is_github_actions = 'OPENAI_API_KEY' not in os.environ
 
 
 texts=[

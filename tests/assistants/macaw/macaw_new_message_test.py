@@ -9,7 +9,7 @@ from cel.prompt.prompt_template import PromptTemplate
 from cel.stores.history.history_inmemory_provider import InMemoryHistoryProvider
 from cel.stores.state.state_inmemory_provider import InMemoryStateProvider
 
-is_github_actions = 'OPENAI_API_KEY' in os.environ
+is_github_actions = 'OPENAI_API_KEY' not in os.environ
 
 func1 = FunctionDefinition(
     name='get_crypto_price', 

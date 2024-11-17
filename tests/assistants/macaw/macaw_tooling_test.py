@@ -4,7 +4,7 @@ from cel.assistants.common import FunctionDefinition, Param
 from cel.assistants.macaw.macaw_utils import map_function_to_tool_message
 
 
-is_github_actions = 'OPENAI_API_KEY' in os.environ
+is_github_actions = 'OPENAI_API_KEY' not in os.environ
 
 
 @pytest.mark.asyncio

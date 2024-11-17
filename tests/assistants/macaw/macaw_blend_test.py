@@ -10,7 +10,7 @@ from cel.stores.history.history_inmemory_provider import InMemoryHistoryProvider
 from cel.stores.state.state_inmemory_provider import InMemoryStateProvider
 from langchain_core.messages import HumanMessage
 
-is_openai_available = 'OPENAI_API_KEY' in os.environ
+is_openai_available = 'OPENAI_API_KEY' not in os.environ
 
 @pytest.mark.asyncio
 @pytest.mark.skipif(is_openai_available, reason="Disable in Github Actions")

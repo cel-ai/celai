@@ -5,7 +5,7 @@ from cel.rag.text2vec.cached_openai import CachedOpenAIEmbedding
 import dotenv
 dotenv.load_dotenv()
 
-is_github_actions = 'OPENAI_API_KEY' in os.environ
+is_github_actions = 'OPENAI_API_KEY' not in os.environ
 
 
 texts=[
