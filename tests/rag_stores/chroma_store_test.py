@@ -5,7 +5,7 @@ import dotenv
 
 dotenv.load_dotenv()
 
-is_github_actions = os.getenv("GITHUB_ACTIONS", "false").lower() == "true"
+is_openai_available = 'OPENAI_API_KEY' in os.environ
 
 
 texts=[
@@ -22,7 +22,7 @@ def client():
 
 
 
-@pytest.mark.skipif(is_github_actions, reason="Disable in Github Actions")
+@pytest.mark.skipif(is_openai_available, reason="Disable in Github Actions")
 def test_do2(client: CachedOpenAIEmbedding):
     # test with texts
     res = client.texts2vec(texts)

@@ -12,7 +12,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 
-is_github_actions = os.getenv("GITHUB_ACTIONS", "false").lower() == "true"
+is_openai_available = 'OPENAI_API_KEY' in os.environ
 
 
 
@@ -22,7 +22,7 @@ def lead():
     return lead
 
 @pytest.mark.asyncio
-@pytest.mark.skipif(is_github_actions, reason="Disable in Github Actions")
+@pytest.mark.skipif(is_openai_available, reason="Disable in Github Actions")
 async def test_insight_with_events(lead: ConversationLead):
 
     insight_targets = {

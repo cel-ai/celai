@@ -8,7 +8,7 @@ from cel.gateway.model.outgoing.outgoing_message_text import OutgoingTextMessage
 from cel.message_enhancers.smart_message_enhancer_openai import SmartMessageEnhancerOpenAI
 
 
-is_github_actions = os.getenv("GITHUB_ACTIONS", "false").lower() == "true"
+is_github_actions = 'OPENAI_API_KEY' in os.environ
 
 @pytest_asyncio.fixture()
 async def adapter() -> SmartMessageEnhancerOpenAI:
