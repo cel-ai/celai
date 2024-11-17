@@ -3,16 +3,13 @@
   <img src="https://raw.githubusercontent.com/cel-ai/celai/30b489b21090e3c3f00ffea66d0ae4ac812bd839/cel/assets/celia_logo.png" width="250" />
 </p> -->
 <div align="center">
-    <img src="https://github.com/cel-ai/celai/actions/workflows/release.yml/badge.svg">
+    <img src="https://github.com/cel-ai/celai/actions/workflows/python-package.yml/badge.svg">
 </div>
 <hr>
 
 <p align="center">
   <img src="https://raw.githubusercontent.com/cel-ai/celai/d11d1c81f8193e3de580f6a21376a246fa2d473f/cel/assets/celai_connectors.png" width="600" />
 </p>
-
-
-
 
 
 # Introduction
