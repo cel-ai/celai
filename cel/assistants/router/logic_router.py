@@ -159,7 +159,7 @@ class LogicRouter(BaseAssistant):
             return
         
         if command == "state":
-            state = self._state_store.get_store(lead.get_session_id())
+            state = await self._state_store.get_store(lead.get_session_id())
             if state is None:
                 yield "No state found"
                 return
@@ -187,9 +187,9 @@ class LogicRouter(BaseAssistant):
                 return
             key = args[0]
             value = args[1]
-            state = self._state_store.get_store(lead.get_session_id())
+            state = await self._state_store.get_store(lead.get_session_id())
             state[key] = value
-            self._state_store.set_store(lead.get_session_id(), state)
+            await self._state_store.set_store(lead.get_session_id(), state)
             yield f"State updated: {key}: {value}"
             return
         
