@@ -10,7 +10,7 @@ from cel.assistants.macaw.macaw_history_adapter import MacawHistoryAdapter
 from cel.assistants.macaw.macaw_utils import get_last_n_elements, map_functions_to_tool_messages
 from cel.assistants.stream_content_chunk import StreamContentChunk
 from langchain_openai import ChatOpenAI
-from langchain_core.messages import HumanMessage, ToolMessage, AIMessageChunk
+from langchain_core.messages import HumanMessage, ToolMessage, AIMessageChunk, AIMessage
 from langchain_core.messages import (
     SystemMessage,
     message_to_dict,
@@ -195,6 +195,7 @@ async def process_new_message(ctx: MacawNlpInferenceContext, message: str, on_fu
 
                     # Process response
                     response = llm_with_tools.invoke(history + new_messages)
+                    new_messages.append(response)
                 else:
                     yield StreamContentChunk(content=response.content, is_partial=True)
                     break
@@ -215,16 +216,22 @@ async def process_new_message(ctx: MacawNlpInferenceContext, message: str, on_fu
                 if not new_messages[1].tool_calls:
                     raise ValueError("Macaw NLP process_message: Second message must have tool calls")
                 
-            tool_calls = new_messages[1].tool_calls
-            
-            # Each message from 2 to n-1 must be a ToolMessage
+            # Each message from 2 to n-1 must be a ToolMessage or AIMessage (recursive tool calls)
             for msg in new_messages[2:-1]:
-                if not isinstance(msg, ToolMessage):
-                    raise ValueError("Macaw NLP process_message: Messages from 2 to n-1 must be ToolMessages")
-            
+                if not (isinstance(msg, ToolMessage) or isinstance(msg, AIMessage)):
+                    raise ValueError("Macaw NLP process_message: Messages from 2 to n-1 must be ToolMessages or AIMessages")
+
+            tool_calls = []
+            tool_messages = []
+            for msg in new_messages:
+                if isinstance(msg, (AIMessage, AIMessageChunk)):
+                    tool_calls.extend(msg.tool_calls)
+                if isinstance(msg, ToolMessage):
+                    tool_messages.append(msg)
+
             # The number of tool calls must be the same as the number of ToolMessages
-            if len(tool_calls) != (len(new_messages)-2):
-                raise ValueError("Macaw NLP process_message: Number of tool calls must be the same as the number of ToolMessages") 
+            if len(tool_calls) != (len(tool_messages)):
+                raise ValueError("Macaw NLP process_message: Number of tool calls must be the same as the number of ToolMessages")
 
             # If all the validations are passed, we can store the new_messages in the history
             # TODO: add support for storing batch messages
