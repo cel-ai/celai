@@ -10,7 +10,7 @@ from cel.assistants.macaw.macaw_history_adapter import MacawHistoryAdapter
 from cel.assistants.macaw.macaw_utils import get_last_n_elements, map_functions_to_tool_messages
 from cel.assistants.stream_content_chunk import StreamContentChunk
 from langchain_openai import ChatOpenAI
-from langchain_core.messages import HumanMessage, ToolMessage, AIMessageChunk, AIMessage
+from langchain_core.messages import HumanMessage, ToolMessage, AIMessageChunk
 from langchain_core.messages import (
     SystemMessage,
     message_to_dict,
@@ -112,9 +112,12 @@ async def process_new_message(ctx: MacawNlpInferenceContext, message: str, on_fu
     
     # Add the human message
     input_msg = HumanMessage(message)
-    history.append(input_msg)
-        
-
+    
+    # New messages buffer is a list of messages to be added to the history
+    # If everything goes well, we will append this list to the history
+    # at the end of the process
+    new_messages = [input_msg]
+    
     # Slice the messages 
     try:
         history = get_last_n_elements(history, ctx.settings.core_history_window_length)
@@ -125,14 +128,13 @@ async def process_new_message(ctx: MacawNlpInferenceContext, message: str, on_fu
         # or keep on processing the whole history?
         # For now, we keep on processing the whole history
     
-    # New messages is a list of messages to be added to the history
-    # This is used to store the new messages in the history store
-    new_messages = [input_msg]
+
+    
     
     response = None
     try:
         # Process LLM invoke in a stream
-        async for delta in llm_with_tools.astream(history):
+        async for delta in llm_with_tools.astream(history + new_messages):
             assert isinstance(delta, AIMessageChunk)
             if response is None:
                 response = delta
@@ -200,40 +202,36 @@ async def process_new_message(ctx: MacawNlpInferenceContext, message: str, on_fu
                     yield StreamContentChunk(content=response.content, is_partial=True)
                     break
                 
-            # Here we have finished the loop and we got the whole list of new_messages to be stored in the history
-            # Last step is to verify that the new_messages list is valid and store it in the history
-            # Validating the list is important to avoid storing invalid messages sequences in the history
-            # Corrupted history can lead to a blocking error for this user in the future
-            # First message must be a HumanMessage
-            if new_messages[0].type != "human":
-                raise ValueError("Macaw NLP process_message: First message must be a HumanMessage")
+            # TODO: This validation may not be needed
+            # -----------------------------------------------
+            # # Here we have finished the loop and we got the whole list of new_messages to be stored in the history
+            # # Last step is to verify that the new_messages list is valid and store it in the history
+            # # Validating the list is important to avoid storing invalid messages sequences in the history
+            # # Corrupted history can lead to a blocking error for this user in the future
+            # # First message must be a HumanMessage
+            # if new_messages[0].type != "human":
+            #     raise ValueError("Macaw NLP process_message: First message must be a HumanMessage")
             
-            # Second message must be a AIMessageChunk
-            # with additional arguments for tool calls
-            if not isinstance(new_messages[1], AIMessageChunk):
-                raise ValueError("Macaw NLP process_message: Second message must be a AIMessageChunk")
-            else:
-                if not new_messages[1].tool_calls:
-                    raise ValueError("Macaw NLP process_message: Second message must have tool calls")
+            # # Second message must be a AIMessageChunk
+            # # with additional arguments for tool calls
+            # if not isinstance(new_messages[1], AIMessageChunk):
+            #     raise ValueError("Macaw NLP process_message: Second message must be a AIMessageChunk")
+            # else:
+            #     if not new_messages[1].tool_calls:
+            #         raise ValueError("Macaw NLP process_message: Second message must have tool calls")
                 
-            # Each message from 2 to n-1 must be a ToolMessage or AIMessage (recursive tool calls)
-            for msg in new_messages[2:-1]:
-                if not (isinstance(msg, ToolMessage) or isinstance(msg, AIMessage)):
-                    raise ValueError("Macaw NLP process_message: Messages from 2 to n-1 must be ToolMessages or AIMessages")
+            # tool_calls = new_messages[1].tool_calls
+            
+            # # Each message from 2 to n-1 must be a ToolMessage
+            # for msg in new_messages[2:-1]:
+            #     if not isinstance(msg, ToolMessage):
+            #         raise ValueError("Macaw NLP process_message: Messages from 2 to n-1 must be ToolMessages")
+            
+            # # The number of tool calls must be the same as the number of ToolMessages
+            # if len(tool_calls) != (len(new_messages)-2):
+            #     raise ValueError("Macaw NLP process_message: Number of tool calls must be the same as the number of ToolMessages") 
 
-            tool_calls = []
-            tool_messages = []
-            for msg in new_messages:
-                if isinstance(msg, (AIMessage, AIMessageChunk)):
-                    tool_calls.extend(msg.tool_calls)
-                if isinstance(msg, ToolMessage):
-                    tool_messages.append(msg)
-
-            # The number of tool calls must be the same as the number of ToolMessages
-            if len(tool_calls) != (len(tool_messages)):
-                raise ValueError("Macaw NLP process_message: Number of tool calls must be the same as the number of ToolMessages")
-
-            # If all the validations are passed, we can store the new_messages in the history
+            
             # TODO: add support for storing batch messages
             for msg in new_messages:
                 await history_store.append_to_history(ctx.lead, msg)
