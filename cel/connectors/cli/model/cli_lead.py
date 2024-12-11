@@ -6,7 +6,7 @@ from cel.gateway.model.conversation_peer import ConversationPeer
 class CliLead(ConversationLead):
 
     def __init__(self, **kwargs):
-        super().__init__(connector_name="cli", **kwargs)
+        super().__init__(**kwargs)
         # get current process id from os
         self.process_id = os.getpid()
 

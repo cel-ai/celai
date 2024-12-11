@@ -121,7 +121,9 @@ class VAPIConnector(BaseConnector):
         log.warning("send_message must be implemented in VAPI connector")
         
         
-        
+    # TODO: Implement a disambiguation name for the connector
+    # in order to support multiple instances of the same connector 
+    # in the same assistant. Follow the TelegramConnector for reference.
     def name(self) -> str:
         return "vapi"
     

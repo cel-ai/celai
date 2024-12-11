@@ -521,6 +521,6 @@ class MessageGateway:
         else:
             uvicorn.run(self.app, host=self.host, port=self.port)
             return
-    
+
+            
         
- 

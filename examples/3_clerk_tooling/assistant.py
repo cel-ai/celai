@@ -55,7 +55,13 @@ from cel.assistants.function_response import RequestMode
 from cel.assistants.common import Param
 
 from datetime import datetime
-date = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+# date = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+def get_current_date():
+    return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+    
+
 
 # Setup prompt
 prompt = """You are an AI Assistant called Jane.
@@ -104,11 +110,24 @@ the order details (product, size, extra ingredients).
 
 Messages processed by the assistant: {count}
 """
+# https://localhost:5004/ouath2_calendar?code=4/0AX4XfWgq
+endpoint_path = "/ouath2_calendar"
+endpoint_verbs = ["GET"]
+
+
+# callback_middleware = CallbackMiddleware(
+#     endpoints = {
+#         'calendar_event': {
+#             'path': endpoint_path,
+#             'verbs': endpoint_verbs
+#         }
+#     },
+# )
     
 
 prompt_template = PromptTemplate(prompt, initial_state={
         # Today full date and time
-        "date": date,
+        "date": get_current_date,
     })
 
 # Create the assistant based on the Macaw Assistant 
@@ -128,6 +147,21 @@ mdm = MarkdownRAG("demo", file_path="examples/3_clerk_tooling/qa.md", split_tabl
 mdm.load()
 # Register the RAG model with the assistant
 ast.set_rag_retrieval(mdm)
+
+
+
+
+
+# # in-context
+# @ast.callback('calendar_event')
+# async def handle_calendar_event(session, ctx: RequestContext, data):
+#     token = data['state']
+#     async with ctx.state_manager() as state:
+#         state['calendar_token'] = token
+    
+#     ctx.response_text(f"Calendar token saved: {token}")
+#     return ctx.cancel_ai_response()
+
 
 @ast.event('message')
 async def handle_message(session, ctx: RequestContext):
@@ -178,6 +212,7 @@ async def handle_create_order(session, params, ctx: FunctionContext):
         state["order_status"] = "pending"
 
     #TODO: Integration with the POS system ERP
+    # callback_middleware.create_callback(lead, 'calendar_event', endpoint_path, endpoint_verbs)
 
     response_message = (
         f"Great we are preparing your order for {product} "

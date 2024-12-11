@@ -3,7 +3,29 @@ from typing import Any
 from .message_gateway_context import MessageGatewayContext
 
 
-class BaseConnector:
+class ConnectorsRegistry(type):
+    def __init__(cls, name, bases, namespace):
+        super().__init__(name, bases, namespace)
+        if not hasattr(cls, '_instances'):
+            cls._instances = []  # Crear solo en BaseLead
+
+    def __call__(cls, *args, **kwargs):
+        instance = super().__call__(*args, **kwargs)
+        # Añadir instancia a BaseLead._instances
+        BaseConnector._instances.append(instance)
+        return instance
+    
+    def get_connector_by_name(cls, name):
+        for instance in cls._instances:
+            if instance.name() == name:
+                return instance
+        return None
+    
+    def get_all_connectors(cls):
+        return cls._instances or []
+    
+
+class BaseConnector(metaclass=ConnectorsRegistry):
 
     def name(self) -> str:
         raise NotImplementedError

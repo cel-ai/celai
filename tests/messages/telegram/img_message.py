@@ -2,13 +2,11 @@ import os
 import pytest
 from cel.connectors.telegram.model.telegram_attachment import TelegramAttachment
 from cel.connectors.telegram.model.telegram_message import TelegramMessage
+from cel.connectors.telegram.telegram_connector import TelegramConnector
 from cel.gateway.model.conversation_lead import ConversationLead
 from cel.connectors.telegram.model.telegram_lead import TelegramLead
-import dotenv
 
-dotenv.load_dotenv()
-
-TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
+TELEGRAM_TOKEN = "123:ASD"
 
 sample_message = {
     "update_id": 1692169,
@@ -55,9 +53,11 @@ sample_message = {
     }
 }
 
-# @pytest.fixture
-# def fix():
-#     pass
+@pytest.fixture
+def connector():
+    # Create Connector
+    return TelegramConnector(token="123:ASD")
+
 
 @pytest.mark.asyncio
 async def test_parse_attachment():
@@ -71,7 +71,7 @@ async def test_parse_attachment():
 
 
 @pytest.mark.asyncio
-async def test_parse_message_with_image():
+async def test_parse_message_with_image_lead_connector():
 
    msg = await TelegramMessage.load_from_message(sample_message, TELEGRAM_TOKEN)
    
@@ -86,3 +86,18 @@ async def test_parse_message_with_image():
    assert msg.text == "This is an image 😍"
    assert msg.date == 1687752535
    assert msg.metadata == {'raw': sample_message['message']}
+   
+   
+   
+
+@pytest.mark.asyncio
+async def test_lead(connector):
+
+   msg = await TelegramMessage.load_from_message(sample_message, TELEGRAM_TOKEN, connector=connector)
+   
+   assert isinstance(msg.lead, TelegramLead)
+   assert isinstance(msg.lead, ConversationLead)
+   
+   assert msg.lead.connector_name == connector.name()
+   assert msg.lead.connector == connector
+   
