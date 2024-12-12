@@ -24,7 +24,7 @@ class VAPILead(ConversationLead):
             }
         
         """
-        super().__init__(connector_name="vapi", **kwargs)
+        super().__init__(**kwargs)
         self.call_object: dict = call_object
 
 

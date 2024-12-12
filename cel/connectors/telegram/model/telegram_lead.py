@@ -5,7 +5,7 @@ from cel.gateway.model.conversation_peer import ConversationPeer
 class TelegramLead(ConversationLead):
 
     def __init__(self, chat_id: str, **kwargs):
-        super().__init__(connector_name="telegram", **kwargs)
+        super().__init__(**kwargs)
         self.chat_id: str = str(chat_id)
 
 
@@ -21,7 +21,8 @@ class TelegramLead(ConversationLead):
     def from_dict(cls, lead_dict):
         return TelegramLead(
             chat_id=lead_dict.get("chat_id"),
-            metadata=lead_dict.get("metadata")
+            metadata=lead_dict.get("metadata"),
+            connector_name=lead_dict.get("connector_name") if lead_dict.get("connector_name") else None,
         )
 
     def __str__(self):

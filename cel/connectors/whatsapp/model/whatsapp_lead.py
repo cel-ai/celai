@@ -5,8 +5,8 @@ from cel.gateway.model.conversation_peer import ConversationPeer
 
 class WhatsappLead(ConversationLead):
 
-    def __init__(self, phone: str, connector_name: str = None, **kwargs):
-        super().__init__(connector_name=connector_name or 'whatsapp', **kwargs)
+    def __init__(self, phone: str, **kwargs):
+        super().__init__(**kwargs)
         self.phone: str = filter_phone_number(str(phone))
 
     def get_session_id(self):

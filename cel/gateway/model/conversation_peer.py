@@ -1,6 +1,5 @@
-from abc import ABC
 import json
-
+from abc import ABC
 
 class ConversationPeer(ABC):
     
@@ -11,7 +10,6 @@ class ConversationPeer(ABC):
         self.phone = phone
         self.avatarUrl = avatarUrl
         self.email = email
-        
         
     def to_dict(self):
         return {
@@ -26,7 +24,6 @@ class ConversationPeer(ABC):
     def to_json(self):
         return json.dumps(self.to_dict())
     
-    
     def __str__(self):
         return f"ConversationPeer: {self.name}"
     
@@ -40,3 +37,24 @@ class ConversationPeer(ABC):
             avatarUrl=peer_dict.get("avatarUrl"),
             email=peer_dict.get("email")
         )
+
+class ConversationPeerEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, ConversationPeer):
+            return obj.to_dict()
+        return super().default(obj)
+
+
+# if __name__ == "__main__":
+#     peer = ConversationPeer(name="John Doe")
+    
+#     obj = {
+#         "id": 1,
+#         "peer": peer
+#     }
+
+#     # json.dumps(obj)
+
+#     json_str = json.dumps(obj, cls=ConversationPeerEncoder)
+#     print(json_str)
+    

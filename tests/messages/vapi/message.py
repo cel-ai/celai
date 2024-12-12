@@ -2,6 +2,7 @@ import pytest
 from cel.connectors.telegram.model.telegram_message import TelegramMessage
 from cel.connectors.vapi.model.vapi_lead import VAPILead
 from cel.connectors.vapi.model.vapi_message import VAPIMessage
+from cel.connectors.vapi.vapi_connector import VAPIConnector
 from cel.gateway.model.conversation_lead import ConversationLead
 from cel.connectors.telegram.model.telegram_lead import TelegramLead
 import dotenv
@@ -40,6 +41,10 @@ request = {
     "metadata": {}
 }
 
+@pytest.fixture
+def connector():
+    # Create Connector
+    return VAPIConnector()
 
 
 @pytest.mark.asyncio
@@ -56,4 +61,14 @@ async def test_parse_message():
    assert msg.text == "Hi."
    assert msg.date is not None
     
-    
+
+@pytest.mark.asyncio
+async def test_parse_message_lead_connector(connector):
+
+    msg: VAPIMessage = await VAPIMessage.load_from_message(request, connector=connector)
+
+    assert isinstance(msg.lead, VAPILead)
+    assert isinstance(msg.lead, ConversationLead)
+
+    assert msg.lead.connector_name == connector.name()
+    assert msg.lead.connector == connector    
