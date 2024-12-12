@@ -10,6 +10,7 @@ from cel.assistants.stream_content_chunk import StreamContentChunk
 from cel.comms.sentense_detection import streaming_sentence_detector_async
 from cel.gateway.model.base_connector import BaseConnector
 from cel.assistants.base_assistant import BaseAssistant
+from cel.gateway.http_callbacks import HttpCallbackProvider
 from cel.gateway.model.message import ConversationLead, Message 
 from cel.gateway.model.message_gateway_context import MessageGatewayContext
 from cel.gateway.model.outgoing import OutgoingMessage, OutgoingTextMessage
@@ -107,13 +108,16 @@ class MessageGateway:
                  message_enhancer: Callable[[ConversationLead, str, bool], OutgoingMessage] = None,
                  gateway_api_key: str = None,
                  gateway_api_key_header: str = "x-api-key",
-                 auto_voice_response: bool = False
+                 auto_voice_response: bool = False,
+                 on_startup: list[Callable] = None
                 ):
+        self.callbacks_manager = HttpCallbackProvider()
         self.webhook_url = webhook_url or f"http://{host}:{port}"
         self.host = host
         self.port = port
         self.connectors : list[BaseConnector] = []
         self.secured_paths = ["/gateway", "/middlewares"]
+        self.on_startup = on_startup
         
         self.app = FastAPI(
             title="Message Gateway",
@@ -212,6 +216,10 @@ class MessageGateway:
         log.debug("Starting message gateway")
         for connector in self.connectors:
             connector.startup(self.get_context())
+            
+        if self.on_startup:
+            self.on_startup(self.get_context())
+                
     
     def __shutdown(self):
         log.debug("Shutting down message gateway")
@@ -219,7 +227,7 @@ class MessageGateway:
             connector.shutdown(self.get_context())
 
     def get_context(self):
-        return MessageGatewayContext(router=APIRouter(), webhook_url=self.webhook_url)
+        return MessageGatewayContext(router=APIRouter(), webhook_url=self.webhook_url, app=self.app)
     
     
     async def __process_middlewares(self, message: Message):

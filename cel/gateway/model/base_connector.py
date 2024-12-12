@@ -66,3 +66,11 @@ class BaseConnector(metaclass=ConnectorsRegistry):
     
     async def send_message(self, message):
         raise NotImplementedError
+    
+    async def send_link_message(self, 
+                            lead, 
+                            text: str, 
+                            links: list, 
+                            metadata: dict = {}, 
+                            is_partial: bool = True):
+        raise NotImplementedError

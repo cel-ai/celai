@@ -13,7 +13,21 @@ def generate_encryption_key():
 def generate_secret_key():
     return secrets.token_hex(32)
 
+
+
 def create_jwt(data: dict, secret_key, encryption_key, ttl=180):
+    """
+    Creates an encrypted JWT (JSON Web Token).
+
+    Args:
+        data (dict): Data to include in the JWT.
+        secret_key (str): Secret key to sign the JWT.
+        encryption_key (str): Key to encrypt the JWT.
+        ttl (int, optional): Token time-to-live in seconds. Default is 180 seconds.
+
+    Returns:
+        str: Encrypted JWT as a string.
+    """    
     # Calculate the expiration time
     expiration = datetime.datetime.utcnow() + datetime.timedelta(seconds=ttl)
 
@@ -37,6 +51,20 @@ def create_jwt(data: dict, secret_key, encryption_key, ttl=180):
 
 
 def decode_jwt(jwt_token, secret_key, encryption_key):
+    """
+    Decodes a JWT token using the provided secret key and encryption key.
+
+    Args:
+        jwt_token (str): The JWT token to decode.
+        secret_key (str): The secret key used to verify the JWT signature.
+        encryption_key (bytes): The encryption key used to decrypt the JWT.
+
+    Returns:
+        dict: The decoded JWT payload.
+
+    Raises:
+        ValueError: If the token has expired or is invalid.
+    """
 
     # Unencrypt the JWT
     fernet = Fernet(base64.urlsafe_b64encode(encryption_key.ljust(32, b'\0')))
@@ -53,6 +81,20 @@ def decode_jwt(jwt_token, secret_key, encryption_key):
     
 
 def generate_link(base_url: str, secret_key: str, encryption_key: bytes, data: dict = None, ttl=180):
+    """
+    Generates a URL with a JWT token as a query parameter.
+
+    Args:
+        base_url (str): The base URL to which the JWT token will be appended.
+        secret_key (str): The secret key used to sign the JWT.
+        encryption_key (bytes): The encryption key used to encrypt the JWT.
+        data (dict, optional): The data to include in the JWT payload. Defaults to None.
+        ttl (int, optional): The time-to-live for the JWT token in seconds. Defaults to 180.
+
+    Returns:
+        str: The generated URL with the JWT token as a query parameter.
+    """    
+    
     assert isinstance(base_url, str), "base_url must be a string"
     assert isinstance(secret_key, str), "secret_key must be a string"
     assert isinstance(encryption_key, bytes), "encryption_key must be a bytes object"

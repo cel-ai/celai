@@ -6,7 +6,7 @@ import pytest
 from cel.connectors.telegram.model.telegram_lead import TelegramLead
 from cel.gateway.message_gateway import MessageGateway
 from cel.gateway.model.message import Message
-from cel.middlewares.callbacks.callback_middleware import CallbackdMiddleware
+from cel.gateway.http_callbacks import HttpCallbackProvider
 
 BASE_URL = "https://example.com"
 
@@ -19,7 +19,7 @@ def leadme(lead_dict: dict):
 @pytest.mark.asyncio
 async def test_callbacks_link1():
     # Crear una instancia de la clase
-    middleware = CallbackdMiddleware(
+    middleware = HttpCallbackProvider(
         endpoint="gcalendar",
         http_verb="GET"
     )
@@ -39,7 +39,7 @@ async def test_callbacks_link1():
     middleware.setup(app)
     middleware.on_startup(gateway=mg)
     
-    link = middleware.generate_callback_url(lead)
+    link = middleware.create_callback(lead)
     
     endpoint = link.replace(BASE_URL, "")  
     

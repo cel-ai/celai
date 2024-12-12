@@ -6,6 +6,9 @@ from loguru import logger as log
 # Load .env variables
 from dotenv import load_dotenv
 
+from cel.gateway.model.conversation_lead import ConversationLead
+from cel.gateway.model.message_gateway_context import MessageGatewayContext
+
 
 load_dotenv()
 
@@ -27,7 +30,7 @@ from cel.assistants.macaw.macaw_assistant import MacawAssistant
 from cel.prompt.prompt_template import PromptTemplate
 from cel.assistants.function_context import FunctionContext
 from cel.assistants.request_context import RequestContext
-from cel.middlewares.callbacks.callback_middleware import CallbackdMiddleware
+from cel.gateway.http_callbacks import HttpCallbackProvider
 
 from datetime import datetime
 date = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -36,44 +39,17 @@ date = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 prompt = """You are an AI Assistant called Jane.
 Today: {date}
 """
-# https://localhost:5004/ouath2_calendar?code=4/0AX4XfWgq
-# endpoint_path = "/ouath2_calendar"
-# endpoint_verbs = ["GET"]
+
+callbacks = HttpCallbackProvider()
 
 
-callback_middleware = CallbackdMiddleware(
-    # endpoints = {
-    #     'calendar_event': {
-    #         'path': endpoint_path,
-    #         'verbs': endpoint_verbs
-    #     }
-    # },
-)
-
-
-# callbackurl = callback_middleware.generate_url(lead, data)
 
 prompt_template = PromptTemplate(prompt, initial_state={
         # Today full date and time
         "date": date,
     })
 
-
 ast = MacawAssistant(prompt=prompt_template, state={})
-
-
-# # in-context
-@ast.callback('calendar_event')
-async def handle_calendar_event(session, ctx: RequestContext, data):
-    token = data['state']
-    async with ctx.state_manager() as state:
-        state['calendar_token'] = token
-    
-    ctx.response_text(f"Calendar token saved: {token}")
-    
-    ctx.connector.send_text_message("Gracias por tu pago!")
-    
-    return ctx.cancel_ai_response()
 
 
 @ast.event('message')
@@ -81,9 +57,21 @@ async def handle_message(session, ctx: RequestContext):
     if ctx.message.text == "link":
         # TODO: generate a link to the calendar
         log.debug(f"Link request for:{ctx.lead.conversation_from.name}")
-        url = callback_middleware.generate_callback_url(ctx.lead, 100)
-        ctx.send_text_message(f"Link: {url}")
+        
+        async def handle_callback(lead: ConversationLead, data: dict):
+            log.critical(f"Callback received from {lead} with data: {data}")        
+        
+        # Create a callback
+        url = callbacks.create_callback(ctx.lead, 
+                                 handle_callback, 
+                                 ttl=20)
+        
+        await ctx.send_link_message("Welcome, this is a link to complete the task", "Click here", url)
         return ctx.cancel_ai_response()
+
+# Setup the Callback Provider
+def on_startup(context: MessageGatewayContext):       
+    callbacks.setup(context)
 
 
 # Create the Message Gateway - This component is the core of the assistant
@@ -91,7 +79,7 @@ async def handle_message(session, ctx: RequestContext):
 gateway = MessageGateway(
     assistant=ast,
     host="127.0.0.1", port=5004,
-    message_enhancer=SmartMessageEnhancerOpenAI()
+    on_startup=on_startup
 )
 
 # For this example, we will use the Telegram connector

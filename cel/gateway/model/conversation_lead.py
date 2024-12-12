@@ -4,7 +4,7 @@ import json
 
 import shortuuid
 from cel.gateway.model.base_connector import BaseConnector
-from cel.gateway.model.conversation_peer import ConversationPeer
+from cel.gateway.model.conversation_peer import ConversationPeer, ConversationPeerEncoder
 
 
 class ConversationLead(ABC):
@@ -64,7 +64,7 @@ class ConversationLead(ABC):
             'attributes': attributes
         }
         # Serializar a JSON
-        return json.dumps(data)
+        return json.dumps(data, cls=ConversationPeerEncoder)
     
     
     @staticmethod
