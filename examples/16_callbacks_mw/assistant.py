@@ -59,7 +59,8 @@ async def handle_message(session, ctx: RequestContext):
         log.debug(f"Link request for:{ctx.lead.conversation_from.name}")
         
         async def handle_callback(lead: ConversationLead, data: dict):
-            log.critical(f"Callback received from {lead} with data: {data}")        
+            log.critical(f"Callback received from {lead} with data: {data}")
+            await ctx.send_text_message("Thank you for completing the task")    
         
         # Create a callback
         url = callbacks.create_callback(ctx.lead, 
