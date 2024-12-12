@@ -1,10 +1,12 @@
 # LOAD ENV VARIABLES
 import os
+import threading
 import time
 import json
 from loguru import logger as log
 # Load .env variables
 from dotenv import load_dotenv
+import requests
 
 from cel.connectors.telegram.model.telegram_lead import TelegramLead
 from cel.gateway.model.message_gateway_context import MessageGatewayContext
@@ -42,9 +44,8 @@ lead = TelegramLead(
 )
 
 cm = HttpCallbackProvider(
-    chat_url="https://www.google.com",
     endpoint="callback",
-    http_verb="GET"
+    http_verb="POST"
 )
 
 
@@ -57,11 +58,26 @@ def on_startup(context: MessageGatewayContext):
     cm.setup(context)
     url = cm.create_callback(lead, 
                              handle_callback, 
-                             ttl=20, 
+                             ttl=180, 
                              single_use=True,
                              redirect_url="https://www.google.com")
     
     log.warning(f"Callback URL: {url}?data=SARASA123")
+    
+    def post_request(url):
+        # wait 2 seconds
+        time.sleep(2)
+        log.warning(f"Sending POST request")
+        response = requests.post(url, json={"body_data": "QWERTY123"})
+        log.warning(f"Response!")
+
+    # Crear y empezar el thread
+    thread = threading.Thread(target=post_request, args=(url,))
+    thread.start()
+
+    # Esperar a que el thread termine (opcional)
+    thread.join()
+        
 
 
 

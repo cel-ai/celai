@@ -70,10 +70,20 @@ class HttpCallbackProvider(ABC):
                 raise HTTPException(status_code=401, detail="Handler not found")
             
             handler = entry.handler
-            
+            params_dict = {}
             try: 
                 # Convert QueryParams to dict
-                params_dict = dict(request.query_params)
+                params_dict.update(dict(request.query_params))
+                # get request body if it's a POST request
+                if self.http_verb.upper() == "POST":
+                    body = await request.body()
+                    try:
+                        body_dict = json.loads(body)
+                        params_dict.update(body_dict)
+                    except Exception as e:
+                        log.error(f"Error parsing body: {e}")
+                        raise HTTPException(status_code=401, detail="Error parsing body")
+                    
                 # handler is coroutine function?
                 if inspect.iscoroutinefunction(handler):
                     await handler(lead, params_dict)
@@ -111,8 +121,7 @@ class HttpCallbackProvider(ABC):
             app.get("/" + self.endpoint + "/{token}")(self._handle_callback)
             
         if self.http_verb.upper() == "POST":
-            # app.post(f"/{self.endpoint}")(handle_callback)
-            log.warning("POST method not implemented yet")
+            app.post("/" + self.endpoint + "/{token}")(self._handle_callback)
 
 
 
