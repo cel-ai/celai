@@ -1,5 +1,6 @@
 import pytest
 from cel.connectors.whatsapp.model.whatsapp_lead import WhatsappLead
+from cel.connectors.whatsapp.whatsapp_connector import WhatsappConnector
 
 
 sample_message = {
@@ -43,9 +44,12 @@ sample_message = {
 }
 
 
-# @pytest.fixture
-# def fix():
-#     pass
+
+@pytest.fixture
+def connector():
+    # Create Whatsapp Connector
+    return WhatsappConnector(phone_number_id="123456", token="123:ASD", verify_token="1234") 
+
 
 @pytest.mark.asyncio
 async def test_parse_lead():
@@ -63,6 +67,8 @@ async def test_parse_lead():
     
     
     
+@pytest.mark.asyncio
+async def test_parse_lead(connector):
 
-    
-    
+    lead = WhatsappLead.from_whatsapp_message(sample_message, connector=connector)
+    assert isinstance(lead, WhatsappLead)

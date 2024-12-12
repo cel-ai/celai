@@ -8,6 +8,8 @@ import aiohttp
 from fastapi import APIRouter, BackgroundTasks, Request
 from loguru import logger as log
 import aiohttp
+import shortuuid
+from cel.connectors.telegram.telegram_connector import hash_token
 from cel.gateway.model.base_connector import BaseConnector
 from cel.connectors.whatsapp.components.reply_button import ReplyButton
 from cel.connectors.whatsapp.constants import BASE_URL
@@ -50,15 +52,15 @@ class WhatsappConnector(BaseConnector):
         # Verify the token and phone number id
         assert token is not None, "Token not provided"
         assert phone_number_id is not None, "Phone number id not provided"
-        assert verify_token is not None, "Verify token not provided"
+        # assert verify_token is not None, "Verify token not provided"
         
         self.token = token
         self.phone_number_id = phone_number_id
         self.base_url = BASE_URL
         self.url = f"{self.base_url}/{phone_number_id}/messages"
-        self.verify_token = verify_token
+        self.verify_token = verify_token or shortuuid.uuid()
         self.endpoint_prefix = endpoint_prefix or "/whatsapp"
-        self.stream_mode = stream_mode  
+        self.stream_mode = stream_mode
         self.verification_handler = nothing
         log.debug("Whatsapp Connector initialized")
         
@@ -132,7 +134,13 @@ class WhatsappConnector(BaseConnector):
         self.verification_handler = handler
 
     def name(self) -> str:
-        return "whatsapp"
+        """ This method returns the name of the connector. This is used to identify the connector
+        In order to allow multiple connectors of the same type to be used in the same application 
+        this method must return a unique name for the connector. 
+        A good practice is to return the name and a hash of the token.
+        """
+        h = hash_token(self.phone_number_id)
+        return f"whatsapp:{h}"
     
     def set_gateway(self, gateway):
         from cel.gateway.message_gateway import MessageGateway

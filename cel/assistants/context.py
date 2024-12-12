@@ -32,6 +32,13 @@ class Context:
                         
         if append_to_history:
             await self.assistant.append_message_to_history(self.lead, text)
+            
+    async def send_link_message(self, body: str, button_text: str, url: str, append_to_history: bool = False):
+        link = {"text": button_text, "url": url}
+        await self.connector.send_link_message(self.lead, body, [link], is_partial=False)
+        
+        if append_to_history:
+            await self.assistant.append_message_to_history(self.lead, f"{body} {url}")
     
     async def send_voice_message(self, text: str, append_to_history: bool = True):
         """ Send a direct voice message to the user conversation. 

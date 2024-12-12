@@ -26,6 +26,11 @@ from cel.gateway.model.outgoing import OutgoingMessage,\
                                             OutgoingTextMessage
 
 
+def hash_token(token: str) -> str:
+    """Hash the token using SHA256. Returns last 8 characters of the hash."""
+    import hashlib
+    return hashlib.sha256(token.encode()).hexdigest()[-8:]
+    
 
 
 class TelegramConnector(BaseConnector):
@@ -303,7 +308,13 @@ class TelegramConnector(BaseConnector):
         
         
     def name(self) -> str:
-        return "telegram"
+        """ This method returns the name of the connector. This is used to identify the connector
+        In order to allow multiple connectors of the same type to be used in the same application 
+        this method must return a unique name for the connector. 
+        A good practice is to return the name and a hash of the token.
+        """
+        hashed_token = hash_token(self.token)
+        return f"telegram:{hashed_token}"
         
     def get_router(self) -> APIRouter:
         return self.router

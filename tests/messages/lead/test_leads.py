@@ -1,4 +1,5 @@
 import pytest
+from cel.connectors.telegram.telegram_connector import TelegramConnector
 from cel.gateway.model.conversation_lead import ConversationLead
 from cel.connectors.telegram.model.telegram_lead import TelegramLead
 from cel.rag.stores.chroma.chroma_store import ChromaStore
@@ -27,37 +28,38 @@ sample_message = {
     }
 
 
-# @pytest.fixture
-# def fix():
-#     pass
+@pytest.fixture
+def connector():
+    # Create Telegram Connector
+    return TelegramConnector(token="123:ASD")
 
     
-def test_lead():
+def test_lead(connector):
 
-    lead = ConversationLead()
+    lead = ConversationLead(connector=connector)
     
     d = lead.to_dict()
     
-    assert d.get("connector_name") == "unknown"
+    assert d.get("connector_name") == connector.name()
     assert d.get("metadata") == None
     
-def test_telegram_lead():
+def test_telegram_lead(connector):
     
-    lead = TelegramLead("chat_id/123", metadata={})
+    lead = TelegramLead("chat_id/123", metadata={}, connector=connector)
     
     d = lead.to_dict()
     
-    assert d.get("connector_name") == "telegram"
+    assert d.get("connector_name") == connector.name()
     assert d.get("metadata") == {}
     assert d.get("chat_id") == "chat_id/123"
     
-def test_telegram_lead_from_dict():
+def test_telegram_lead_from_dict(connector):
     
-    lead = TelegramLead("chat_id/123", metadata={})
+    lead = TelegramLead("chat_id/123", metadata={}, connector=connector)
     
     d = lead.to_dict()
     
-    assert d.get("connector_name") == "telegram"
+    assert d.get("connector_name") ==  connector.name()
     assert d.get("metadata") == {}
     assert d.get("chat_id") == "chat_id/123"
     
@@ -65,11 +67,11 @@ def test_telegram_lead_from_dict():
     
     assert lead2.chat_id == "chat_id/123"
     assert lead2.metadata == {}
-    assert lead2.connector_name == "telegram"
+    assert lead2.connector_name == connector.name()
     
-def test_telegram_lead_from_message():
+def test_telegram_lead_from_message(connector):
     
-    lead = TelegramLead.from_telegram_message(sample_message)
+    lead = TelegramLead.from_telegram_message(sample_message, connector=connector)
     
     assert lead.chat_id == "1320141991"
     assert lead.metadata == {
@@ -77,6 +79,6 @@ def test_telegram_lead_from_message():
         'date': 1716850049,
         'raw': sample_message
     }
-    assert lead.connector_name == 'telegram'
+    assert lead.connector_name == connector.name()
     assert lead.conversation_from.name == 'John Doe'
     assert lead.conversation_from.id == "1320141991"
