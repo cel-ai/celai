@@ -85,10 +85,15 @@ class HttpCallbackProvider(ABC):
                         raise HTTPException(status_code=401, detail="Error parsing body")
                     
                 # handler is coroutine function?
+                res = None
                 if inspect.iscoroutinefunction(handler):
-                    await handler(lead, params_dict)
+                    res = await handler(lead, params_dict)
                 else:
-                    handler(lead, params_dict)
+                    res = handler(lead, params_dict)
+                    
+                if res: 
+                    log.debug(f"Handler response: {res}")
+                    return res
                     
             except Exception as e:
                 log.error(f"Error calling handler with lead: {lead}: {e}")
