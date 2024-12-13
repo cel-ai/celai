@@ -178,28 +178,7 @@ class InvitationGuardMiddleware(ABC):
         try:
             assert isinstance(message, Message), "Message must be a Message object"
             assert isinstance(connector, BaseConnector), "Connector must be a BaseConnector object"
-
-            if not message.text:
-                log.warning("Message without text received. Setting metadata.")
-                message.text = ""  
-                entry = await self.get_auth_entry(message.lead.get_session_id())
-                if entry:
-                    assert isinstance(entry, AuthEntry), "Entry must be an AuthEntry object"
-                    
-                    if self.allow_only_invited and entry.invite_code is None:
-                        log.critical(f"User {message.lead.get_session_id()} is not invited")
-                        await connector.send_text_message(message.lead, self.reject_message)
-                        return False
-                    
-                    time_since_last_request = time.time() - (entry.last_request or 0)
-                    message.metadata = message.metadata or {}
-                    message.metadata['time_since_last_request'] = time_since_last_request
-                    message.metadata['invitation'] = entry.metadata
-                    message.lead.metadata = message.lead.metadata or {}
-                    message.lead.metadata['time_since_last_request'] = time_since_last_request
-                    message.lead.metadata['invitation'] = entry.metadata
-                    return True
-            
+          
             if not await self.__handle_invitation_code(message, connector, assistant):
                 return False        
             
@@ -248,6 +227,9 @@ class InvitationGuardMiddleware(ABC):
     
     # Handle invitation claim
     def __search_invitation_code(self, text: str):
+        if not text:
+            return None        
+        
         # regex to match code in string
         regex = r"#\w{6}"
         
