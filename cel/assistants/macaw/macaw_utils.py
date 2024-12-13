@@ -1,10 +1,23 @@
 from typing import List
 from langchain_core.messages import BaseMessage, trim_messages
 from cel.assistants.common import FunctionDefinition, Param
-
+from langchain_core.messages import HumanMessage
 
 def get_last_n_elements(msgs: List[BaseMessage], n: int) -> List[BaseMessage]:
-    return trim_messages(
+    if msgs is None:
+        return []
+    
+    if len(msgs) == 1 and msgs[0].type == "system":
+        return msgs
+     
+    # if last message is not human. Add a mock human message
+    # it seems that trim_messages param end_on=("human", "tool", "ai") is not working
+    # as expected
+    mock_message = HumanMessage("mock human message")
+    if msgs[-1].type != "human":
+        msgs.append(mock_message)
+     
+    res = trim_messages(
         msgs,
         # Keep the last <= n_count tokens of the messages.
         strategy="last",
@@ -16,7 +29,7 @@ def get_last_n_elements(msgs: List[BaseMessage], n: int) -> List[BaseMessage]:
         # Most chat models expect that chat history starts with either:
         # (1) a HumanMessage or
         # (2) a SystemMessage followed by a HumanMessage
-        start_on="human",
+        start_on=("human", "ai"),
         # Most chat models expect that chat history ends with either:
         # (1) a HumanMessage or
         # (2) a ToolMessage
@@ -24,8 +37,14 @@ def get_last_n_elements(msgs: List[BaseMessage], n: int) -> List[BaseMessage]:
         # Usually, we want to keep the SystemMessage
         # if it's present in the original history.
         # The SystemMessage has special instructions for the model.
-        include_system=True,
+        include_system=True,    
     )
+    
+    # Remove the mock message
+    if mock_message in res:
+        res.remove(mock_message)
+        
+    return res
             
 
 
