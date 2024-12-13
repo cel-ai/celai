@@ -178,7 +178,7 @@ class InvitationGuardMiddleware(ABC):
         try:
             assert isinstance(message, Message), "Message must be a Message object"
             assert isinstance(connector, BaseConnector), "Connector must be a BaseConnector object"
-            
+          
             if not await self.__handle_invitation_code(message, connector, assistant):
                 return False        
             
@@ -227,6 +227,9 @@ class InvitationGuardMiddleware(ABC):
     
     # Handle invitation claim
     def __search_invitation_code(self, text: str):
+        if not text:
+            return None        
+        
         # regex to match code in string
         regex = r"#\w{6}"
         
