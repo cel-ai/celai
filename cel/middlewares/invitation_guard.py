@@ -447,11 +447,11 @@ class InvitationGuardMiddleware(ABC):
         url = None
         source = lead.connector_name
         
-        if source == "telegram":
+        if source.startswith("telegram:"):
             url = self.__gen_telegram_invitation_url(invitation.invite_code)
             qr = self.__gen_barcode(url)
         
-        if source == "whatsapp":
+        if source.startswith("whatsapp:"):
             url = self.__gen_whatsapp_invitation_url(invitation.invite_code)
             qr = self.__gen_barcode(url)
         
