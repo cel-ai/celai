@@ -107,11 +107,24 @@ class LogicRouter(BaseAssistant):
         log.debug(f"Router Assistant selected: {ast.name}")
         
         # Call 'message' event in the selected assistant
-        await ast.call_event("message", lead, message)
-    
+        res = await ast.call_event("message", lead, message)
+        # assert res is None or isinstance(res, EventResponse)
+        
+        if res is None:
+            log.debug(f"Event: 'message' response is None for message: {message.text}")
+            
+        # if res is not noe and res has attr disable_ai_response, and  res.disable_ai_response is True
+        if res and hasattr(res, "disable_ai_response") and res.disable_ai_response:
+            log.warning(f"Event 'message' response has disabled AI response for message: {message.text}")
+            # Return empty response
+            return
+            
         # Call the assistant new_message method
         async for chunk in ast.new_message(message, local_state):
             yield chunk
+            
+
+                        
         
        
     async def blend(self, lead: ConversationLead, text: str, history_length: int = None):
