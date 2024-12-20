@@ -102,7 +102,7 @@ def generate_link(base_url: str, secret_key: str, encryption_key: bytes, data: d
     
 
     # Create the JWT token
-    jwt_token = create_jwt(data, secret_key, encryption_key, )
+    jwt_token = create_jwt(data, secret_key, encryption_key, ttl)
 
     # Return the URL with the JWT token as a query parameter
     return f"{base_url}/{jwt_token}"
