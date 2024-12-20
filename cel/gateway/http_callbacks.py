@@ -130,7 +130,7 @@ class HttpCallbackProvider(ABC):
 
 
 
-    def create_callback(self, lead: ConversationLead, handler: callable, ttl: int = 60, redirect_url: str = None, single_use: bool = True):
+    def create_callback(self, lead: ConversationLead, handler: callable, ttl: int = 180, redirect_url: str = None, single_use: bool = True):
         """ Create a callback link for a lead """
         
         assert isinstance(lead, ConversationLead), "Lead must be a ConversationLead object"
