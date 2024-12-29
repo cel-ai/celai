@@ -94,22 +94,16 @@ async def process_new_message(ctx: MacawNlpInferenceContext, message: str, on_fu
     
     # RAG
     # ------------------------------------------------------------------------
-    if ctx.rag_retriever:
-        rag_response = ctx.rag_retriever.search(message, ctx.settings.core_rag_knn)
-        if rag_response:
-            for vr in rag_response:
-                prompt += f"\n{vr.text or ''}"
-
     
     # Prompt > System Message
     history = [SystemMessage(prompt)]
-    
-    # Load messages from store
+
+    # Load messages from store before RAG retrieval
     msgs = await history_store.get_history(ctx.lead) or []
-    
+
     # append to messages
     history.extend(msgs)
-    
+
     # Add the human message
     input_msg = HumanMessage(message)
     
@@ -127,10 +121,13 @@ async def process_new_message(ctx: MacawNlpInferenceContext, message: str, on_fu
         # We should return an error message to the user?
         # or keep on processing the whole history?
         # For now, we keep on processing the whole history
-    
 
-    
-    
+    if ctx.rag_retriever:
+        rag_response = ctx.rag_retriever.search(message, ctx.settings.core_rag_knn, history + new_messages)
+        if rag_response:
+            for vr in rag_response:
+                prompt += f"\n{vr.text or ''}" 
+
     response = None
     try:
         # Process LLM invoke in a stream
