@@ -203,6 +203,7 @@ class BaseAssistant(ABC):
             args = inspect.getfullargspec(func).args
 
             ctx = FunctionContext(lead=lead, 
+                                  assistant=self,
                                   connector=connector, 
                                   state=self._state_store, 
                                   history=self._history_store)
