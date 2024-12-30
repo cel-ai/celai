@@ -23,6 +23,7 @@ Note:
 Please ensure you have the Cel.ai framework installed in your Python environment prior to running this script.
 """
 # LOAD ENV VARIABLES
+import json
 import os
 import time
 from urllib import request
@@ -109,7 +110,15 @@ async def handle_get_crypto_price(session, params, ctx: FunctionContext):
 
 # --------------------------------------------------------------------
 
-
+@ast.client_command("do")  
+async def handle_validate_Document(session, ctx: RequestContext, command: str, args: list[str]):  
+    params = args  
+    async with ctx.state_manager() as state:  
+        state["do"] = json.dumps(params)
+        
+        
+    await ctx.send_text_message("Document validated successfully")
+    return RequestContext.cancel_ai_response()  
 
 # Create the Message Gateway - This component is the core of the assistant
 # It handles the communication between the assistant and the connectors
