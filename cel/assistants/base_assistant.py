@@ -119,8 +119,11 @@ class BaseAssistant(ABC):
             # Build args_dict
             from cel.assistants.request_context import RequestContext
             ctx = RequestContext(lead=lead, 
-                                 connector=connector,
-                                 assistant=self)
+                                 message=message,
+                                 assistant=self,
+                                 state=self._state_store,
+                                 history=self._history_store,
+                                 connector=connector)
             args_dict = {
                 'session': lead.get_session_id(),
                 'ctx': ctx,
