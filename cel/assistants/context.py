@@ -1,4 +1,5 @@
 from dataclasses import dataclass, field
+from loguru import logger as log
 import warnings
 from cel.assistants.common import EventResponse
 from cel.assistants.state_manager import AsyncStateManager
@@ -6,6 +7,7 @@ from cel.gateway.model.base_connector import BaseConnector
 from cel.gateway.model.conversation_lead import ConversationLead
 from cel.gateway.model.message import Message
 from cel.assistants.base_assistant import BaseAssistant
+from cel.gateway.model.outgoing.outgoing_message_text import OutgoingTextMessage
 from cel.stores.history.base_history_provider import BaseHistoryProvider
 from cel.stores.state.base_state_provider import BaseChatStateProvider
 
@@ -23,17 +25,58 @@ class Context:
     def state_manager(self, commit_on_error: bool = False):
         return AsyncStateManager(self.lead, self.state, commit_on_error)
     
-    async def send_text_message(self, text: str, append_to_history: bool = True):
+    async def send_text_message(self, text: str, append_to_history: bool = True, is_private: bool = False):
         """ Send a direct message text to the user conversation. 
-        This message will be sent without any AI processing. 
-        And won't be stored in the conversation history. 
-        Use this method only for messages that are not part of the conversation flow. """
-        await self.connector.send_text_message(self.lead, text)
-                        
-        if append_to_history:
-            await self.assistant.append_message_to_history(self.lead, text)
+        This message will be sent without any AI processing.
+        If append_to_history is True, the message will be added to the conversation history. 
+        """
+                
+        # TODO:
+        #  1- Create an OutgoingTextMessage object
+        #  2- Send the message using MessageGateway in order to include middlewares in the loop
+        #  3- Send the message using the connector
+        #  4- Add the message to the history if append_to_history is True
+        
+        
+        # 1- Create an OutgoingTextMessage object
+        outgoing_message = OutgoingTextMessage(
+            content=text,
+            lead=self.lead,
+            is_partial=False,
+            is_private=is_private
+        )
+        
+        
+        try:
+            from cel.gateway.message_gateway import MessageGateway
+            from cel.gateway.message_gateway import StreamMode
+            
+            # 2- Send the message using MessageGateway in order to include middlewares in the loop
+            mg = MessageGateway.instance()
+            res = await mg.process_outgoing_msg_middlewares(
+                    message=outgoing_message, 
+                    is_partial=False, 
+                    is_summary=False, 
+                    mode=StreamMode.FULL)
+            
+            # 3- Send the message using the connector
+            await self.lead.connector.send_message(outgoing_message)
+            
+            # 4- Add the message to the history if append_to_history is True
+            if append_to_history:
+                await self.assistant.append_message_to_history(self.lead, text)            
+
+        except Exception as e:
+            log.error(f"Error sending message: {e}")
+            
+
+            
+
+            
             
     async def send_link_message(self, body: str, button_text: str, url: str, append_to_history: bool = False):
+        # TODO: Add same logic as send_text_message!!!!!
+        
         link = {"text": button_text, "url": url}
         await self.connector.send_link_message(self.lead, body, [link], is_partial=False)
         
@@ -41,6 +84,7 @@ class Context:
             await self.assistant.append_message_to_history(self.lead, f"{body} {url}")
     
     async def send_voice_message(self, text: str, append_to_history: bool = True):
+        # TODO: Add same logic as send_text_message!!!!!
         """ Send a direct voice message to the user conversation. 
         This message will be sent without any AI processing. 
         And won't be stored in the conversation history. 
@@ -52,6 +96,7 @@ class Context:
             await self.assistant.append_message_to_history(self.lead, text)
             
     async def blend_message(self, text: str, history_length: int = None):
+        # TODO: Add same logic as send_text_message!!!!!
         """ Blend a message into the conversation context. 
         and return the blended text. """    
         return await self.assistant.blend(self.lead, text, history_length)

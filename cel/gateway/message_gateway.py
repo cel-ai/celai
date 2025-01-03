@@ -13,6 +13,7 @@ from cel.assistants.base_assistant import BaseAssistant
 from cel.gateway.http_callbacks import HttpCallbackProvider
 from cel.gateway.model.message import ConversationLead, Message 
 from cel.gateway.model.message_gateway_context import MessageGatewayContext
+from cel.gateway.model.middleware import BaseMiddleware
 from cel.gateway.model.outgoing import OutgoingMessage, OutgoingTextMessage
 from cel.message_enhancers.default_message_enhancer import DefaultMessageEnhancer
 
@@ -111,6 +112,7 @@ class MessageGateway:
                  auto_voice_response: bool = False,
                  on_startup: list[Callable] = None
                 ):
+        self.__class__._instance = self
         self.callbacks_manager = HttpCallbackProvider()
         self.webhook_url = webhook_url or f"http://{host}:{port}"
         self.host = host
@@ -217,6 +219,12 @@ class MessageGateway:
         for connector in self.connectors:
             connector.startup(self.get_context())
             
+        for middleware in self.middlewares:
+            # if middlerware implments BaseMiddleware, call the startup method
+            if hasattr(middleware, "startup"):
+                # if startup is async 
+                asyncio.create_task(middleware.startup(self.get_context()))
+            
         if self.on_startup:
             self.on_startup(self.get_context())
                 
@@ -230,18 +238,49 @@ class MessageGateway:
         return MessageGatewayContext(router=APIRouter(), webhook_url=self.webhook_url, app=self.app)
     
     
-    async def __process_middlewares(self, message: Message):
+    async def process_incoming_msg_middlewares(self, message: Message):
         try:
             for middleware in self.middlewares:
-                res = await middleware(message, message.lead.connector, self.assistant)
+                # if middleware is instance of BaseMiddleware
+                if isinstance(middleware, BaseMiddleware):
+                    res = await middleware.incoming_message(message, message.lead.connector, self.assistant)
+                else:
+                    res = await middleware(message, message.lead.connector, self.assistant)
+                    
                 # Break the chain if any middleware returns False
                 if not res:
                     log.error(f"Middleware {type(middleware)} rejected message: {message.text}")
                     return False
             return True
         except Exception as e:
-            log.error(f"Error processing middlewares: {e}")
+            log.error(f"Middleware error processing incoming msg: {e}")
             return False
+        
+        
+    async def process_outgoing_msg_middlewares(self, 
+                                                 message: OutgoingMessage, 
+                                                 is_partial=False, 
+                                                 is_summary=False, 
+                                                 mode: StreamMode = None):
+        try:
+            for middleware in self.middlewares:
+                # if middleware is instance of BaseMiddleware
+                if isinstance(middleware, BaseMiddleware):
+                    res = await middleware.outgoing_message(message, 
+                                                            message.lead.connector, 
+                                                            self.assistant,
+                                                            is_partial=is_partial,
+                                                            is_summary=is_summary,
+                                                            mode=mode)
+
+                # Break the chain if any middleware returns False
+                if not res:
+                    log.error(f"Middleware {type(middleware)} rejected outgoing message: {message}")
+                    return False
+            return True
+        except Exception as e:
+            log.error(f"Middleware error processing outgoing msg: {e}")
+            return False        
         
     async def __process_events(self, message: Message):
         try:
@@ -331,7 +370,7 @@ class MessageGateway:
             connector = message.lead.connector
             lead = message.lead
             
-            if not await self.__process_middlewares(message):
+            if not await self.process_incoming_msg_middlewares(message):
                 log.warning(f"Message {message.lead.get_session_id()} rejected by middlewares")
                 return
             
@@ -372,7 +411,8 @@ class MessageGateway:
                                     # Send the sentence to the connector
                                     await self.dispatch_outgoing_genai_message(message, 
                                                                         text=sentence.content, 
-                                                                        is_partial=sentence.is_partial)
+                                                                        is_partial=sentence.is_partial,
+                                                                        mode=mode)
                                     await connector.send_typing_action(message.lead)
                                     # Time delation based on the length of the sentence
                                     if self.delivery_rate_control:
@@ -391,7 +431,11 @@ class MessageGateway:
                                     yield chunk
                                     # pass
                                 else:
-                                    await self.dispatch_outgoing_genai_message(message, text=chunk.content, is_partial=chunk.is_partial)
+                                    await self.dispatch_outgoing_genai_message(message, 
+                                                                               text=chunk.content, 
+                                                                               is_partial=chunk.is_partial,
+                                                                               mode=mode)
+                                    
                                     await connector.send_typing_action(message.lead)
 
                         
@@ -406,8 +450,16 @@ class MessageGateway:
                                 yield chunk
                                 # pass
                             else:
-                                await self.dispatch_outgoing_genai_message(message, text=content, is_partial=False)
+                                await self.dispatch_outgoing_genai_message(message, 
+                                                                           text=content, 
+                                                                           is_partial=False,
+                                                                           mode=mode)
                                 
+                        await self.dispatch_outgoing_genai_message(message, 
+                                                                   text=content, 
+                                                                   is_partial=False, 
+                                                                   is_summary=True,
+                                                                   mode=mode)
                         log.debug(f"Assistant response: {content}")
                         
                 except Exception as e:
@@ -448,7 +500,9 @@ class MessageGateway:
     async def dispatch_outgoing_genai_message(self, 
                                               src_message: Message, 
                                               text: str, 
-                                              is_partial=False):
+                                              is_partial=False,
+                                              is_summary=False,
+                                              mode: StreamMode = None):
         assert isinstance(src_message, Message), "src_message must be an instance of Message"
         lead = src_message.lead
         assert isinstance(text, str),\
@@ -460,6 +514,13 @@ class MessageGateway:
         msg = await self.message_enhancer(lead, text, is_partial)
 
         assert isinstance(msg, OutgoingMessage), "message enhancer must return an instance of OutgoingMessage"        
+
+        await self.process_outgoing_msg_middlewares(msg, is_partial=is_partial, is_summary=is_summary, mode=mode)
+
+        # Summary messages are not sent to the connector
+        # They are used for logging and debugging or middleware processing
+        if is_summary:
+            return
 
         await connector.send_message(msg)
         

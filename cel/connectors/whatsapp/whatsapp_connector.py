@@ -34,7 +34,7 @@ def nothing(*args):
 
 class WhatsappConnector(BaseConnector):
     def __init__(self, 
-                 token: str = None, 
+                 token: str = None,
                  phone_number_id: str = None,
                  endpoint_prefix: str = None,
                  stream_mode: StreamMode = StreamMode.SENTENCE,
@@ -43,10 +43,11 @@ class WhatsappConnector(BaseConnector):
         Initialize the Async WhatsApp Cloud API Connector with the Meta Access Token and the Phone Number Id
 
         Args:
-            token[str]: The Meta Access Token
-            phone_number_id[str]: The Meta Phone Number Id
-            verify_token[str]: The verification token, defaults to a random string
-            webhook_prefix[str]: The prefix for the webhook, defaults to "/whatsapp"
+            - token[str]: The Meta Access Token
+            - phone_number_id[str]: The Meta Phone Number Id
+            - verify_token[str]: The verification token, defaults to a random string
+            - webhook_prefix[str]: The prefix for the webhook, defaults to "/whatsapp"
+            - stream_mode[StreamMode]: The stream mode for the gateway, defaults to StreamMode.SENTENCE
         """
 
         # Verify the token and phone number id

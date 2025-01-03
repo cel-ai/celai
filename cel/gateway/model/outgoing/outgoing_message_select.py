@@ -8,13 +8,13 @@ class OutgoingSelectMessage(OutgoingMessage):
     
     def __init__(self, 
                  lead: ConversationLead, 
-                 metadata: dict = None, 
-                 attachments: list[FileAttachment] = None,
-                 is_partial: bool = True,
                  content: str = None,
-                 options: list[str] = None
+                 options: list[str] = None,
+                 **kwargs
                 ):
-        super().__init__(OutgoingMessageType.SELECT, lead, metadata, attachments, is_partial)
+        super().__init__(OutgoingMessageType.SELECT, 
+                         lead, **kwargs)
+        
         self.content = content
         self.options = options
 
@@ -23,6 +23,9 @@ class OutgoingSelectMessage(OutgoingMessage):
         for option in self.options:
             assert isinstance(option, str), "each option must be a string"
             
+    def __str__(self):
+        """Returns the content of the message plus the options"""
+        return f"{self.content}\n\n" + "\n".join([f"{i + 1}. {option}" for i, option in enumerate(self.options)])
             
     @staticmethod
     def from_dict(data: dict) -> 'OutgoingSelectMessage':

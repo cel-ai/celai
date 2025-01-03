@@ -26,13 +26,15 @@ class OutgoingMessage(ABC):
                  lead: ConversationLead, 
                  metadata: dict = None, 
                  attachments: list[FileAttachment] = None,
-                 is_partial: bool = True
+                 is_partial: bool = True,
+                 is_private: bool = False
                 ):
         self.date = datetime.datetime.now().timestamp()
         self.attachments: list[FileAttachment] = attachments
         self.lead = lead
         self.metadata = metadata
         self.is_partial = is_partial
+        self.is_private = is_private
         self.type = type
         
         assert isinstance(self.lead, ConversationLead),\
@@ -51,5 +53,7 @@ class OutgoingMessage(ABC):
                         OutgoingMessageType.SELECT, 
                         OutgoingMessageType.LINK],\
             "type must be a valid OutgoingMessageType"
+        
+        
         
         
