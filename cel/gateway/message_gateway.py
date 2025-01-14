@@ -273,10 +273,11 @@ class MessageGateway:
                                                             is_summary=is_summary,
                                                             mode=mode)
 
-                # Break the chain if any middleware returns False
-                if not res:
-                    log.error(f"Middleware {type(middleware)} rejected outgoing message: {message}")
-                    return False
+                    # Break the chain if any middleware returns False
+                    if not res:
+                        log.error(f"Middleware {type(middleware)} rejected outgoing message: {message}")
+                        return False
+                    
             return True
         except Exception as e:
             log.error(f"Middleware error processing outgoing msg: {e}")
