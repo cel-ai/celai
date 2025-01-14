@@ -36,7 +36,8 @@ class WhatsappConnector(BaseConnector):
                  phone_number_id: str = None,
                  endpoint_prefix: str = None,
                  stream_mode: StreamMode = StreamMode.SENTENCE,
-                 verify_token: str = None):
+                 verify_token: str = None,
+                 ssl: bool = False):
         """
         Initialize the Async WhatsApp Cloud API Connector with the Meta Access Token and the Phone Number Id
 
@@ -60,6 +61,7 @@ class WhatsappConnector(BaseConnector):
         self.endpoint_prefix = endpoint_prefix or "/whatsapp"
         self.stream_mode = stream_mode  
         self.verification_handler = nothing
+        self.ssl = ssl
         log.debug("Whatsapp Connector initialized")
         
         
@@ -165,7 +167,7 @@ class WhatsappConnector(BaseConnector):
             "message_id": message_id,
         }
 
-        async with aiohttp.ClientSession() as session:
+        async with aiohttp.ClientSession(connector=aiohttp.TCPConnector(ssl=self.ssl)) as session:
             async with session.post(f"{self.url}", 
                                     headers=build_headers(self.token), 
                                     json=payload) as response:
@@ -207,7 +209,7 @@ class WhatsappConnector(BaseConnector):
         headers = build_headers(self.token)
         log.info(f"Sending message to {lead.phone}")
         
-        async with aiohttp.ClientSession() as session:
+        async with aiohttp.ClientSession(connector=aiohttp.TCPConnector(ssl=self.ssl)) as session:
             async with session.post(f"{self.url}", headers=headers, json=data) as r:
                 if r.status == 200:
                     log.info(f"Message sent to {lead.phone}")
@@ -409,7 +411,7 @@ class WhatsappConnector(BaseConnector):
         
         log.debug(f"Sending buttons to {recipient_id}")
         headers = build_headers(self.token)
-        async with aiohttp.ClientSession() as session:
+        async with aiohttp.ClientSession(connector=aiohttp.TCPConnector(ssl=self.ssl)) as session:
             async with session.post(f"{self.url}", headers=headers, json=data) as r:
                 if r.status == 200:
                     log.debug(f"Message sent to {recipient_id}")
@@ -442,7 +444,7 @@ class WhatsappConnector(BaseConnector):
             "interactive": button,
         }
         headers = build_headers(self.token)
-        async with aiohttp.ClientSession() as session:
+        async with aiohttp.ClientSession(connector=aiohttp.TCPConnector(ssl=self.ssl)) as session:
             async with session.post(f"{self.url}", headers=headers, json=data) as r:
                 if r.status == 200:
                     log.debug(f"Message sent to {recipient_id}")
@@ -471,7 +473,7 @@ class WhatsappConnector(BaseConnector):
             "interactive": cta_url,
         }
         headers = build_headers(self.token)
-        async with aiohttp.ClientSession() as session:
+        async with aiohttp.ClientSession(connector=aiohttp.TCPConnector(ssl=self.ssl)) as session:
             async with session.post(f"{self.url}", headers=headers, json=data) as r:
                 if r.status == 200:
                     log.debug(f"Message sent to {recipient_id}")
