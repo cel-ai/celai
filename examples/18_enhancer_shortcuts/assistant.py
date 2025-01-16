@@ -1,28 +1,3 @@
-"""
-Smoothy Inc Clerk Assistant with RAG
--------------------------------------
-
-This is a simple example of an AI Assistant implemented using the Cel.ai framework.
-It serves as a basic demonstration of how to get started with Cel.ai for creating intelligent assistants.
-
-Framework: Cel.ai
-License: MIT License
-
-This script is part of the Cel.ai example series and is intended for educational purposes.
-
-Usage:
-------
-Configure the required environment variables in a .env file in the root directory of the project.
-The required environment variables are:
-- WEBHOOK_URL: The webhook URL for the assistant, you can use ngrok to create a public URL for your local server.
-- TELEGRAM_TOKEN: The Telegram bot token for the assistant. You can get this from the BotFather on Telegram.
-
-Then run this script to see a basic AI assistant in action.
-
-Note:
------
-Please ensure you have the Cel.ai framework installed in your Python environment prior to running this script.
-"""
 # LOAD ENV VARIABLES
 import os
 import time
