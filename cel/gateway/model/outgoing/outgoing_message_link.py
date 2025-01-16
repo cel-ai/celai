@@ -8,18 +8,22 @@ class OutgoingLinkMessage(OutgoingMessage):
     
     def __init__(self, 
                  lead: ConversationLead, 
-                 metadata: dict = None, 
-                 attachments: list[FileAttachment] = None,
-                 is_partial: bool = True,
                  content: str = None,
-                 links: list = None
+                 links: list = None,
+                 **kwargs
                 ):
-        super().__init__(OutgoingMessageType.LINK, lead, metadata, attachments, is_partial)
+        super().__init__(OutgoingMessageType.LINK, 
+                         lead, **kwargs)
+        
         self.content = content
         self.links = links
 
         assert isinstance(self.content, str), "body must be a string"
         assert isinstance(self.links, list), "link must be a list"
+
+    def __str__(self):
+        """Returns the content of the message plus the links"""
+        return f"{self.content}\n\n" + "\n".join([f"{link['text']}: {link['url']}" for link in self.links])
 
 
     @staticmethod

@@ -9,14 +9,15 @@ class OutgoingTextMessage(OutgoingMessage):
     def __init__(self, 
                  content: str,
                  lead: ConversationLead, 
-                 metadata: dict = None, 
-                 attachments: list[FileAttachment] = None,
-                 is_partial: bool = True
+                 **kwargs
                 ):
-        super().__init__(OutgoingMessageType.TEXT, lead, metadata, attachments, is_partial)
+        super().__init__(OutgoingMessageType.TEXT, lead, **kwargs)
         self.content = content
 
         assert isinstance(self.content, str), "text must be a string"
+        
+    def __str__(self):
+        return self.content
 
 
     @staticmethod
