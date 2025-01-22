@@ -1,8 +1,11 @@
 from cel.middlewares.chatwoot.chatwoot_client import ChatwootClient
 from cel.middlewares.chatwoot.model import ChatwootConversationRef, ContactLead, InboxRef
+from cel.middlewares.chatwoot.phone_util import format_to_e164
 from loguru import logger as log
 import time
 from typing import Any, Dict, Optional
+
+
 
 
 class ConversationManager:
@@ -89,19 +92,20 @@ class ConversationManager:
             raise Exception(f"Multiple contacts found for identifier: {contact_ref.identifier}")
 
         contact = contacts[0] if contacts else None
+        phone = format_to_e164(contact_ref.phone_number)
 
         if not contact:
             res = await self.client.create_contact(
                 inbox_id=self.inbox.id,
                 name=contact_ref.name,
                 email=contact_ref.email,
-                phone_number=contact_ref.phone_number,
+                phone_number=phone,
                 identifier=contact_ref.identifier
             )
             contact = res.get('payload', {}).get('contact')
 
             if not contact:
-                raise Exception(f"Failed to create contact: {contact_ref} in Chatwoot: {self.base_url}")
+                raise Exception(f"Failed to create contact: {contact_ref} in Chatwoot: {self.base_url}. Message: {res.get('message')}")
 
         return contact
 
