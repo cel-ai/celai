@@ -84,12 +84,19 @@ class ChatwootMiddleware(BaseMiddleware):
     
     
     async def incoming_message(self,  message: Message, connector: BaseConnector, assistant: BaseAssistant):
-        assert self.conversation_manager is not None, "ChatwootMiddleware is not initialized"
         
-        cto = self.create_contact_from_incoming_message(message)
-        await self.conversation_manager.send_incoming_text_message(cto, message.text)
-        
-        return True
+        try:
+            assert self.conversation_manager is not None, "ChatwootMiddleware is not initialized"
+            
+            cto = self.create_contact_from_incoming_message(message)
+            await self.conversation_manager.send_incoming_text_message(cto, message.text)
+            
+            return True
+        except Exception as e:
+            log.error(f"Middleware Chatwoot: Error processing incoming message: {e}")
+            return True
+    
+    
     
     async def outgoing_message(self, 
                                message: OutgoingMessage, 
@@ -99,12 +106,14 @@ class ChatwootMiddleware(BaseMiddleware):
                                is_summary: bool = False,
                                mode: StreamMode = None):
         
-        assert self.conversation_manager is not None, "ChatwootMiddleware is not initialized"
-        
-        
-        if (mode == StreamMode.FULL and not is_summary) or (mode != StreamMode.FULL and is_summary):
-            cto = self.create_contact_from_incoming_message(message)
-            await self.conversation_manager.send_outgoing_text_message(cto, str(message))
-        
-        return True
-        
+        try:
+            assert self.conversation_manager is not None, "ChatwootMiddleware is not initialized"
+                    
+            if (mode == StreamMode.FULL and not is_summary) or (mode != StreamMode.FULL and is_summary):
+                cto = self.create_contact_from_incoming_message(message)
+                await self.conversation_manager.send_outgoing_text_message(cto, str(message))
+            
+            return True
+        except Exception as e:
+            log.error(f"Middleware Chatwoot: Error processing outgoing message: {e}")
+            return True

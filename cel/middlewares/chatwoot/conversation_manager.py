@@ -84,17 +84,20 @@ class ConversationManager:
         """ Touch a contact by identifier 
             If not found, create a new contact.
         """
-        res = await self.client.search_contact(contact_ref.identifier)
+        phone = format_to_e164(contact_ref.phone_number)
+        res = await self.client.search_contact(phone)
         contacts = res.get("payload", [])
 
         if len(contacts) > 1:
-            log.critical(f"Multiple contacts found for identifier: {contact_ref.identifier}")
-            raise Exception(f"Multiple contacts found for identifier: {contact_ref.identifier}")
+            log.critical(f"Multiple contacts found for phone: {phone} count: {len(contacts)}")
+            # raise Exception(f"Multiple contacts found for identifier: {contact_ref.identifier}")
+            
 
         contact = contacts[0] if contacts else None
-        phone = format_to_e164(contact_ref.phone_number)
+
 
         if not contact:
+            log.debug(f"Contact with {phone} not found. Creating...")
             res = await self.client.create_contact(
                 inbox_id=self.inbox.id,
                 name=contact_ref.name,
@@ -151,30 +154,37 @@ class ConversationManager:
         """ Send an outgoing message to a contact 
             If contact not found, create a new contact.
         """
-        conversation = await self.touch_conversation(contact_ref)
-        conversation_id = conversation.id
-        return await self.client.create_message(
-            account_id=self.account_id,
-            conversation_id=conversation_id,
-            content=message,
-            private=private,
-            content_type="text",
-            message_type="outgoing"
-        )
+        try:
+            conversation = await self.touch_conversation(contact_ref)
+            conversation_id = conversation.id
+            return await self.client.create_message(
+                account_id=self.account_id,
+                conversation_id=conversation_id,
+                content=message,
+                private=private,
+                content_type="text",
+                message_type="outgoing"
+            )
+        except Exception as e:
+            log.error(f"Middleware Chatwoot: Error sending outgoing message: {e}")
+            return None
 
     async def send_incoming_text_message(self, contact_ref: ContactLead, message: str, private: bool = False) -> Optional[Dict[str, Any]]:
         """ Send an incoming message to a contact 
             If contact not found, create a new contact.
         """
-        conversation = await self.touch_conversation(contact_ref)
-        conversation_id = conversation.id
-        return await self.client.create_message(
-            account_id=self.account_id,
-            conversation_id=conversation_id,
-            content=message,
-            private=private,
-            content_type="text",
-            message_type="incoming"
-        )
         
-        
+        try:
+            conversation = await self.touch_conversation(contact_ref)
+            conversation_id = conversation.id
+            return await self.client.create_message(
+                account_id=self.account_id,
+                conversation_id=conversation_id,
+                content=message,
+                private=private,
+                content_type="text",
+                message_type="incoming"
+            )
+        except Exception as e:
+            log.error(f"Middleware Chatwoot: Error sending incoming message: {e}")
+            return None
