@@ -3,6 +3,8 @@ from cel.gateway.model.outgoing.outgoing_message import OutgoingMessage, Outgoin
 from cel.gateway.model.outgoing.outgoing_message_link import OutgoingLinkMessage
 from cel.gateway.model.outgoing.outgoing_message_select import OutgoingSelectMessage
 from cel.gateway.model.outgoing.outgoing_message_text import OutgoingTextMessage
+from cel.gateway.model.outgoing.outgoing_message_buttons import OutgoingButtonsMessage
+
 from loguru import logger as log
 
 def outgoing_message_from_dict(data: dict) -> OutgoingMessage:
@@ -22,6 +24,9 @@ def outgoing_message_from_dict(data: dict) -> OutgoingMessage:
         
         if data["type"] == OutgoingMessageType.LINK:
             return OutgoingLinkMessage.from_dict(data)
+        
+        if data["type"] == OutgoingMessageType.BUTTONS:
+            return OutgoingButtonsMessage.from_dict(data)
         
         # TODO: add other message types here
         raise ValueError(f"Not implemented message type: {data['type']}")
