@@ -10,6 +10,7 @@ from loguru import logger as log
 import aiohttp
 import shortuuid
 from cel.connectors.telegram.telegram_connector import hash_token
+from cel.connectors.whatsapp.components.list_item import ListItem
 from cel.gateway.model.base_connector import BaseConnector
 from cel.connectors.whatsapp.components.reply_button import ReplyButton
 from cel.connectors.whatsapp.constants import BASE_URL
@@ -23,6 +24,7 @@ from cel.gateway.model.outgoing import OutgoingMessage,\
                                             OutgoingLinkMessage,\
                                             OutgoingSelectMessage,\
                                             OutgoingTextMessage
+from cel.gateway.model.outgoing.outgoing_message_buttons import OutgoingButtonsMessage
 from .functions.utils import changed_field, is_message, is_reaction
 
 
@@ -231,6 +233,8 @@ class WhatsappConnector(BaseConnector):
                                   options: list[str],
                                   header: str = None,
                                   footer: str = None,
+                                  button_text: str = None,
+                                  list_title: str = None,
                                   metadata: dict = {}, 
                                   is_partial: bool = True):
         """ Send a select message to the lead. This will send a message with a list of options
@@ -247,6 +251,79 @@ class WhatsappConnector(BaseConnector):
         assert options is not None, "Options not provided"
         assert len(options) > 0, "Options must be a list of strings"
         
+        # trim options to 20 characters
+        options = [opt[:20] for opt in options]
+        
+        if len(options) > 10:
+            log.critical(f"The maximum number of options is 10. Got: {options}")
+            # trim options to 10
+            options = options[:10]
+        
+        items = [ListItem(title=opt) for opt in options]
+        
+        # "rows": [
+        #     {
+        #       "id": "<ROW_ID>",
+        #       "title": "<ROW_TITLE_TEXT>",
+        #       "description": "<ROW_DESCRIPTION_TEXT>"
+        #     }
+        #     /* Additional rows would go here*/
+        #   ]
+        
+        response = await self._send_select(
+            recipient_id=lead.phone,
+            list={
+                "type": "list",
+                "header": {"type": "text", "text": header} if header else None,
+                "body": {"text": text} if text else None,
+                "footer": {"text": footer} if footer else None,
+                "action": {
+                    "sections": [
+                        {
+                            "title": list_title,
+                            "rows": [json.loads(str(item)) for item in items]
+                        }
+                    ],
+                    "button": button_text                    
+                },
+
+            }
+        )
+        log.debug(f"Select message response: {response}")
+    
+    
+    async def send_buttons_message(self, 
+                                  lead: WhatsappLead, 
+                                  text: str,
+                                  options: list[str],
+                                  header: str = None,
+                                  footer: str = None,
+                                  metadata: dict = {}, 
+                                  is_partial: bool = True):
+        """ Send a message with buttons. This will send a message with a limited number of options
+        to the lead. The lead will be able to select one of the options.
+        For WhatsApp, the maximum number of buttons is 3. And the message is a interactive message with
+        reply buttons.
+        
+        Args:
+            - lead[WhatsappLead]: The lead to send the message
+            - text[str]: The text to send with the options
+            - options[list[str]]: A list of options to send to the lead
+            - metadata[dict]: Metadata to send with the message
+            - is_partial[bool]: If the message is partial or not
+        """        
+        assert isinstance(lead, WhatsappLead), "lead must be instance of WhatsappLead"
+        assert options is not None, "Options not provided"
+        assert len(options) > 0, "Options must be a list of strings"
+        
+        # trim options to 20 characters
+        options = [opt[:20] for opt in options]
+        
+        if len(options) > 3:
+            log.critical(f"The maximum number of options is 3. Got: {options}")
+            # trim options to 3
+            options = options[:3]
+        
         buttons = [ReplyButton(title=opt) for opt in options]
         
         response = await self._send_reply_button(
@@ -261,7 +338,7 @@ class WhatsappConnector(BaseConnector):
                 }
             }
         )
-        log.debug(f"Select message response: {response}")
+        log.debug(f"Select message response: {response}")    
     
     async def send_link_message(self, lead: WhatsappLead, text: str, links: list, metadata: dict = {}, is_partial: bool = True):
         """ Send a link message to the lead. When you need to send a link to some platforms
@@ -338,7 +415,19 @@ class WhatsappConnector(BaseConnector):
                                            message.content, 
                                            options=message.options, 
                                            metadata=message.metadata, 
+                                           button_text=message.button,
+                                           list_title=message.list_title,
                                            is_partial=message.is_partial)
+            
+        if message.type == OutgoingMessageType.BUTTONS:
+            assert isinstance(message, OutgoingButtonsMessage),\
+            "message must be an instance of OutgoingSelectMessage"
+            
+            await self.send_buttons_message(lead, 
+                                           message.content, 
+                                           options=message.options, 
+                                           metadata=message.metadata, 
+                                           is_partial=message.is_partial)            
         
         if message.type == OutgoingMessageType.LINK:
             assert isinstance(message, OutgoingLinkMessage),\
@@ -425,7 +514,40 @@ class WhatsappConnector(BaseConnector):
                 if r.status == 200:
                     log.debug(f"Message sent to {recipient_id}")
                 else:
-                    log.error(await r.json())        
+                    log.error(await r.json())     
+                    
+    async def _send_select(
+        self, 
+        list: Dict[Any, Any], 
+        recipient_id: str
+    ) -> Dict[Any, Any]:
+        """
+        Sends an interactive list message to a WhatsApp user
+
+        Args:
+            button[dict]: A dictionary containing the button data
+            recipient_id[str]: Phone number of the user with country code wihout +
+
+        Note:
+            The maximum number of buttons is 3, more than 3 buttons will rise an error.
+        """
+
+        
+        data = {
+            "messaging_product": "whatsapp",
+            "recipient_type": "individual",
+            "to": recipient_id,
+            "type": "interactive",
+            "interactive": list,
+        }
+        headers = build_headers(self.token)
+        async with aiohttp.ClientSession(connector=aiohttp.TCPConnector(ssl=self.ssl)) as session:
+            async with session.post(f"{self.url}", headers=headers, json=data) as r:
+                if r.status == 200:
+                    log.debug(f"Message sent to {recipient_id}")
+                else:
+                    log.error(await r.json())                       
+                       
 
     async def _send_reply_button(
         self, 

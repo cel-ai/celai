@@ -105,6 +105,16 @@ class WhatsappMessage(Message):
 
         # get text from message or caption if it is a media message
         text = msg0.get("text", {}).get("body") 
+        
+        type = msg0.get("type")
+        if type == 'interactive':
+            interactive = msg0.get("interactive", {})
+            if interactive.get("type") == 'button_reply':
+                text = interactive.get("button_reply", {}).get("title")
+            # {'type': 'list_reply', 'list_reply': {'id': '2', 'title': '2'}}
+            if interactive.get("type") == 'list_reply':
+                text = interactive.get("list_reply", {}).get("title")
+        
         date = int(msg0.get("timestamp"))
         id = msg0.get("id")
         metadata = {}

@@ -3,24 +3,20 @@ from cel.gateway.model.conversation_lead import ConversationLead
 from cel.gateway.model.outgoing.outgoing_message import OutgoingMessage, OutgoingMessageType
 
 
-class OutgoingSelectMessage(OutgoingMessage):
+class OutgoingButtonsMessage(OutgoingMessage):
     """This class represents a specific outgoing message object with select options"""
     
     def __init__(self, 
                  lead: ConversationLead, 
                  content: str = None,
-                 button: str = None,
-                 list_title: str = None,
                  options: list[str] = None,
                  **kwargs
                 ):
-        super().__init__(OutgoingMessageType.SELECT, 
+        super().__init__(OutgoingMessageType.BUTTONS, 
                          lead, **kwargs)
         
         self.content = content
         self.options = options
-        self.button = button
-        self.list_title = list_title    
 
         assert isinstance(self.content, str), "body must be a string"
         assert isinstance(self.options, list), "options must be a list"
@@ -32,7 +28,7 @@ class OutgoingSelectMessage(OutgoingMessage):
         return f"{self.content}\n\n" + "\n".join([f"{i + 1}. {option}" for i, option in enumerate(self.options)])
             
     @staticmethod
-    def from_dict(data: dict) -> 'OutgoingSelectMessage':
+    def from_dict(data: dict) -> 'OutgoingButtonsMessage':
         """Creates an OutgoingSelectMessage instance from a dictionary"""
         assert isinstance(data, dict),\
             "data must be a dictionary"
@@ -47,11 +43,9 @@ class OutgoingSelectMessage(OutgoingMessage):
         assert isinstance(data["lead"], ConversationLead),\
             "lead must be an instance of ConversationLead"
         
-        return OutgoingSelectMessage(
+        return OutgoingButtonsMessage(
             content=data["content"],
             options=data["options"],
-            list_title=data.get("list_title"),
-            button=data.get("button"),
             lead=data["lead"],
             metadata=data.get("metadata"),
             attachments=[FileAttachment.from_dict(attachment) for attachment in data.get("attachments", [])],
@@ -61,16 +55,14 @@ class OutgoingSelectMessage(OutgoingMessage):
         
     @staticmethod
     def description() -> str:
-        return """When the message asks the user to make select between options, use the following structure:
-    Maximum of 10 options. Ideal for dropdown like questions.
+        return """When the message asks the user to make a choice between a limited number of options (up to 3).
+Ideal for yes/no kind of questions. Use the following structure:
 {
-    "type": "select",
-    "list_title": "A title for the list",
+    "type": "buttons",
     "options": [],
     "content": "A body text",
-    "button": View Options"
 }
 
-The options must be a list of strings. Options should be short and clear in title case. 
+The options must be a list of strings. Options should be short and clear in title case. Maximum of 3 options.
 The prompt is keeped in the content field, and the options are the possible choices.
 """

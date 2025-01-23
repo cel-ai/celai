@@ -15,6 +15,7 @@ class OutgoingMessageType:
     
     SELECT = "select"
     LINK = "link"
+    BUTTONS = "buttons"
 
 
 class OutgoingMessage(ABC):
@@ -51,6 +52,7 @@ class OutgoingMessage(ABC):
                         OutgoingMessageType.LOCATION, 
                         OutgoingMessageType.CONTACT, 
                         OutgoingMessageType.SELECT, 
+                        OutgoingMessageType.BUTTONS,
                         OutgoingMessageType.LINK],\
             "type must be a valid OutgoingMessageType"
         
