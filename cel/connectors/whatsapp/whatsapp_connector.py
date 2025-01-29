@@ -435,7 +435,7 @@ class WhatsappConnector(BaseConnector):
             
             await self.send_link_message(lead, 
                                          message.content, 
-                                         url=message.links, 
+                                         links=message.links, 
                                          metadata=message.metadata, 
                                          is_partial=message.is_partial)
 
