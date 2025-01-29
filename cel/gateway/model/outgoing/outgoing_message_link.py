@@ -57,6 +57,7 @@ class OutgoingLinkMessage(OutgoingMessage):
     @staticmethod
     def description() -> str:
         return """If the contains a link, you will generate a message of type link with the information from the text.
+    The content length must be less than 20 characters.    
 {
     "type": "link",
     "content": "A boody text",
