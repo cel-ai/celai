@@ -435,9 +435,15 @@ class MessageGateway:
                                     await self.dispatch_outgoing_genai_message(message, 
                                                                                text=chunk.content, 
                                                                                is_partial=chunk.is_partial,
-                                                                               mode=mode)
+                                                                               mode=mode)                                
                                     
                                     await connector.send_typing_action(message.lead)
+                            ## The summary message are not sent to client
+                            await self.dispatch_outgoing_genai_message(message, 
+                                                                   text=content, 
+                                                                   is_partial=False, 
+                                                                   is_summary=True,
+                                                                   mode=mode)
 
                         
                         if mode == StreamMode.FULL:
@@ -454,13 +460,9 @@ class MessageGateway:
                                 await self.dispatch_outgoing_genai_message(message, 
                                                                            text=content, 
                                                                            is_partial=False,
-                                                                           mode=mode)
+                                                                           mode=mode)                                
                                 
-                        await self.dispatch_outgoing_genai_message(message, 
-                                                                   text=content, 
-                                                                   is_partial=False, 
-                                                                   is_summary=True,
-                                                                   mode=mode)
+                        
                         log.debug(f"Assistant response: {content}")
                         
                 except Exception as e:
