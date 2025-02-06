@@ -63,6 +63,6 @@ Ideal for yes/no kind of questions. Use the following structure:
     "content": "A body text",
 }
 
-The options must be a list of strings. Options should be short and clear in title case. Maximum of 3 options.
+The options must be a list of strings. Options should be short and clear in title case. Maximum of 3 options and a maximum text of 20 characters.
 The prompt is keeped in the content field, and the options are the possible choices.
 """
