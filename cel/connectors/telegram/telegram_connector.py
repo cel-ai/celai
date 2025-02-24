@@ -74,7 +74,11 @@ class TelegramConnector(BaseConnector):
             # return anything different than 200 OK will make telegram retry 
             # sending the message up to 3 times.
             # background_tasks.add_task(self.__process_message, payload)
-            await self.__enqueue_message(payload)
+            try:
+                await self.__enqueue_message(payload)
+            except Exception as e:
+                log.error(f"Error processing message: {e}")
+                return {"status": "error", "message": str(e)}
             return {"status": "ok"}
 
     async def __process_user_queue(self, chat_id: str):
@@ -99,6 +103,11 @@ class TelegramConnector(BaseConnector):
 
 
     async def __enqueue_message(self, payload: dict | AiogramMessage):
+        # if its edited_message, return error
+        if "edited_message" in payload:
+            log.error("Edited messages are not supported")
+            raise Exception("Edited messages are not supported")
+        
         chat_id =  str(payload["message"]["from"]["id"])
         log.debug(f"Enqueuing message for chat_id: {chat_id}")
         if chat_id not in self.user_queues:
