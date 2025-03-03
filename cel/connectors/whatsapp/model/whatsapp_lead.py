@@ -13,7 +13,29 @@ class WhatsappLead(ConversationLead):
         return f"{self.connector_name}:{self.phone}"  
 
     def to_dict(self):
-        data = super().to_dict()
+        try:
+            data = super().to_dict()
+        except AttributeError:
+            # If the parent's to_dict() method fails because an attribute
+            # is a dict instead of an object with to_dict(), construct our own dict
+            data = {}
+            # Add basic attributes from ConversationLead that might be needed
+            if hasattr(self, 'conversation_from'):
+                if hasattr(self.conversation_from, 'to_dict'):
+                    data['conversation_from'] = self.conversation_from.to_dict()
+                else:
+                    data['conversation_from'] = self.conversation_from
+            if hasattr(self, 'conversation_to'):
+                if hasattr(self.conversation_to, 'to_dict'):
+                    data['conversation_to'] = self.conversation_to.to_dict()
+                else:
+                    data['conversation_to'] = self.conversation_to
+            if hasattr(self, 'connector_name'):
+                data['connector_name'] = self.connector_name
+            if hasattr(self, 'metadata'):
+                data['metadata'] = self.metadata
+                
+        # Add WhatsappLead specific fields
         data['phone'] = self.phone
         return data
 
