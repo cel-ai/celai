@@ -55,7 +55,7 @@ class ConversationLead(ABC):
         # Obtener el nombre de la clase
         class_name = f"{lead.__class__.__module__}.{lead.__class__.__name__}"
         # Obtener los atributos del objeto
-        attributes = {k: v for k, v in lead.__dict__.items()}
+        attributes = {k: v for k, v in lead.__dict__.items() if k != 'metadata'}
         #  remove connector from attributes
         attributes.pop('connector', None)
         # Crear un diccionario con el nombre de la clase y los atributos
