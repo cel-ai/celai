@@ -15,7 +15,7 @@ Usage:
 Configure the required environment variables in a .env file in the root directory of the project.
 The required environment variables are:
 
-- NGROK_AUTH_TOKEN: The Ngrok authentication token. You can get this from the Ngrok dashboard.
+- NGROK_AUTHTOKEN: The Ngrok authentication token. You can get this from the Ngrok dashboard.
 - TELEGRAM_TOKEN: The Telegram bot token for the assistant. You can get this from the BotFather on Telegram.
 
 Also becuase this example uses the ElevenLabs and Deepgram APIs, you need to set the following environment variables:

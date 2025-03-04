@@ -251,6 +251,6 @@ gateway.run(enable_ngrok=True)
 # if you want to use ngrok for testing, 
 # you can enable it by setting enable_ngrok=True
 # NOTE: Make sure you have ngrok installed in your system
-# and env variable NGROK_AUTH_TOKEN set with your ngrok token
+# and env variable NGROK_AUTHTOKEN set with your ngrok token
 # gateway.run(enable_ngrok=True)
 
