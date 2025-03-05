@@ -101,11 +101,14 @@ class WhatsappConnector(BaseConnector):
         async def hook(r: Request, background_tasks: BackgroundTasks):
             try:
                 # Handle Webhook Subscriptions
+                log.info("Received message from Whatsapp")
                 data = await r.json()
+                log.debug(json.dumps(data, indent=2))
                 background_tasks.add_task(self.__process_message, data)
                 return {"success": True}
             except Exception as e:
                 # Avoid replaying the message
+                log.error(f"Error processing message: {e}")
                 return {"success": True}
         # ---------------------------------------------------------------
         return router
