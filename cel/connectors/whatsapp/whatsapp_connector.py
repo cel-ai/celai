@@ -30,7 +30,7 @@ from .functions.utils import changed_field, is_message, is_reaction
 
 
 
-def nothing(*args):
+async def nothing(*args):
     pass
 
 
@@ -91,7 +91,7 @@ class WhatsappConnector(BaseConnector):
             if r.query_params.get("hub.verify_token") == self.verify_token:
                 log.info("Verified webhook")
                 challenge = r.query_params.get("hub.challenge")
-                self.verification_handler(challenge)
+                await self.verification_handler(challenge)
                 return int(challenge)
             log.error("Webhook Verification failed")
             await self.verification_handler(False)
