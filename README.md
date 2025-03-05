@@ -91,10 +91,10 @@ export OPENAI_API_KEY=<YOUR_OPENAI_API_KEY>
 
 ### Ngrok Authtoken
 
-The easy way to get a public HTTPS URL for your assistant is to use [ngrok](https://ngrok.com/). Cel.ai has built-in support for ngrok, so you can easily delegate the public URL creation to Cel.ai. To use ngrok, you'll need a Ngrok authtoken. You can get one by signing up on the [ngrok website](https://ngrok.com/). Then set the `NGROK_AUTH_TOKEN` environment variable:
+The easy way to get a public HTTPS URL for your assistant is to use [ngrok](https://ngrok.com/). Cel.ai has built-in support for ngrok, so you can easily delegate the public URL creation to Cel.ai. To use ngrok, you'll need a Ngrok authtoken. You can get one by signing up on the [ngrok website](https://ngrok.com/). Then set the `NGROK_AUTHTOKEN` environment variable:
 
 ```bash
-export NGRO_AUTH_TOKEN=<YOUR_NGROK_AUTH_TOKEN>
+export NGROK_AUTHTOKEN=<YOUR_NGROK_AUTHTOKEN>
 ```
 
 Then you can create a new Python script with the following code, don't forget to
