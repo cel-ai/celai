@@ -38,6 +38,7 @@ class WhatsappConnector(BaseConnector):
     def __init__(self, 
                  token: str = None,
                  phone_number_id: str = None,
+                 allowed_numbers: list[str] = None,
                  endpoint_prefix: str = None,
                  stream_mode: StreamMode = StreamMode.SENTENCE,
                  verify_token: str = None,
@@ -60,6 +61,7 @@ class WhatsappConnector(BaseConnector):
         
         self.token = token
         self.phone_number_id = phone_number_id
+        self.allowed_numbers = allowed_numbers
         self.base_url = BASE_URL
         self.url = f"{self.base_url}/{phone_number_id}/messages"
         self.verify_token = verify_token or shortuuid.uuid()
@@ -97,6 +99,14 @@ class WhatsappConnector(BaseConnector):
             await self.verification_handler(False)
             return {"success": False}
 
+        def get_display_phone_number(data: dict) -> str:
+            """Safely retrieve the display phone number from the incoming data."""
+            try:
+                return data["entry"][0]["changes"][0]["value"]["metadata"]["display_phone_number"]
+            except (IndexError, KeyError, TypeError) as e:
+                log.error(f"Error retrieving display phone number: {e}")
+                return None
+
         @router.post("/")
         async def hook(r: Request, background_tasks: BackgroundTasks):
             try:
@@ -104,6 +114,10 @@ class WhatsappConnector(BaseConnector):
                 log.info("Received message from Whatsapp")
                 data = await r.json()
                 log.debug(json.dumps(data, indent=2))
+                display_phone_number = get_display_phone_number(data)
+                if self.allowed_numbers and display_phone_number not in self.allowed_numbers:
+                    log.error(f"Display phone number {display_phone_number} is not allowed.")
+
                 background_tasks.add_task(self.__process_message, data)
                 return {"success": True}
             except Exception as e:
