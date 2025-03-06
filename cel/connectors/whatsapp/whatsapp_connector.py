@@ -116,10 +116,11 @@ class WhatsappConnector(BaseConnector):
                 log.debug(json.dumps(data, indent=2))
                 display_phone_number = get_display_phone_number(data)
                 if self.allowed_numbers and display_phone_number not in self.allowed_numbers:
-                    log.error(f"Display phone number {display_phone_number} is not allowed.")
-
-                background_tasks.add_task(self.__process_message, data)
-                return {"success": True}
+                    log.warning(f"Display phone number {display_phone_number} is not allowed.")
+                    return {"success": True}
+                else:
+                    background_tasks.add_task(self.__process_message, data)
+                    return {"success": True}
             except Exception as e:
                 # Avoid replaying the message
                 log.error(f"Error processing message: {e}")
