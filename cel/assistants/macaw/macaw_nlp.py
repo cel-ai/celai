@@ -254,7 +254,7 @@ async def process_new_message(ctx: MacawNlpInferenceContext, message: str, on_fu
 
 
 @traceable
-async def blend_message(ctx: MacawNlpInferenceContext, message: str):
+async def blend_message(ctx: MacawNlpInferenceContext, message: str, history_length: int = 10):
     """Blend a message using the conversation context."""
     
     assert isinstance(ctx, MacawNlpInferenceContext),\
@@ -281,10 +281,10 @@ async def blend_message(ctx: MacawNlpInferenceContext, message: str):
 
     # Load messages from store
     msgs = await history_store.get_last_messages(
-        ctx.lead, 
-        ctx.settings.blend_history_window_length) or []
-    # Map to BaseMessages and append to messages
+        ctx.lead,
+        history_length or ctx.settings.blend_history_window_length) or []
     
+    # Map to BaseMessages and append to messages
     dialog = ""
     for msg in msgs:
         dialog += f"{msg.type}: {msg.content}\n"

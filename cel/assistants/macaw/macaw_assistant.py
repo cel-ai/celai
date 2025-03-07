@@ -119,7 +119,7 @@ class MacawAssistant(BaseAssistant):
         )
         
         
-        return await blend_message(ctx, message=text)
+        return await blend_message(ctx, message=text, history_length=history_length)
     
     async def do_insights(self, lead: ConversationLead, targets: dict = {}, history_length: int = 10):
         try:
