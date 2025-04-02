@@ -3,7 +3,7 @@ Unofficial Python wrapper for the WhatsApp Cloud API.
 """
 from __future__ import annotations
 import json
-from typing import Any, Callable, Dict
+from typing import Any, BinaryIO, Callable, Dict
 import aiohttp
 from fastapi import APIRouter, BackgroundTasks, Request
 from loguru import logger as log
@@ -628,6 +628,38 @@ class WhatsappConnector(BaseConnector):
                     log.debug(f"Message sent to {recipient_id}")
                 else:
                     log.error(await r.json())     
+
+
+
+    async def send_document_message(self, lead, content: str | bytes | BinaryIO, 
+                                    filename:str, caption:str = None, metadata: dict = {}, is_partial: bool = True):
+        log.debug(f"Sending document {filename} (caption:{caption}) message to {lead.phone}")
+        
+        assert isinstance(lead, WhatsappLead), "lead must be instance of WhatsappLead"
+        assert isinstance(filename, str), "filename must be a string"
+        
+        from pywa import WhatsApp
+        
+        # get mimet type from filename
+        import mimetypes
+        mime_type, _ = mimetypes.guess_type(filename)
+        log.debug(f"Mime type: {mime_type}")
+
+        wa = WhatsApp(
+            phone_id=self.phone_number_id,
+            token=self.token
+        )
+
+        # Send the document
+        wa.send_document(
+            to=lead.phone,
+            document=content,
+            filename=filename,
+            caption=caption,
+            mime_type=mime_type,
+            footer=caption
+        )
+
 
 
     # all the files starting with _ are imported here, and should not be imported directly.

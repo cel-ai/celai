@@ -1,5 +1,5 @@
 from fastapi import APIRouter
-from typing import Any
+from typing import Any, BinaryIO
 from .message_gateway_context import MessageGatewayContext
 
 
@@ -56,6 +56,9 @@ class BaseConnector(metaclass=ConnectorsRegistry):
     
     # Send an image message from memory
     async def send_image_message(self, lead, image: Any, filename:str, caption:str = None, metadata: dict = {}, is_partial: bool = True):
+        raise NotImplementedError
+
+    async def send_document_message(self, lead, content: str | bytes | BinaryIO, filename:str, caption:str = None, metadata: dict = {}):
         raise NotImplementedError
     
     async def send_image_url_message(self, lead, image_url: str, caption:str = None, metadata: dict = {}, is_partial: bool = True):

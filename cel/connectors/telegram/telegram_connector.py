@@ -303,7 +303,17 @@ class TelegramConnector(BaseConnector):
                                            options=message.options, 
                                            metadata=message.metadata, 
                                            is_partial=message.is_partial)
-
+            
+        if message.type == OutgoingMessageType.BUTTONS:
+            assert isinstance(message, OutgoingSelectMessage),\
+            "message must be an instance of OutgoingSelectMessage"
+            
+            await self.send_select_message(lead, 
+                                           message.content, 
+                                           options=message.options, 
+                                           metadata=message.metadata, 
+                                           is_partial=message.is_partial)
+            
         if message.type == OutgoingMessageType.LINK:
             assert isinstance(message, OutgoingLinkMessage),\
             "message must be an instance of OutgoingLinkMessage"
