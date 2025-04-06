@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from typing import Any
 from cel.assistants.common import FunctionDefinition, Param
 from cel.assistants.function_response import FunctionResponse, RequestMode
 from cel.assistants.context import Context
@@ -37,24 +38,21 @@ class FunctionContext(Context):
                 errors.append(f"Missing required parameter '{param_name}' in function '{name}'")
             
             if validate_types:        
-                type_error = self.validate_type(param_name, param_value, param_type)
+                type_error = self.validate_type(param, param_value)
                 if type_error:
                     errors.append(type_error)
                 
-                
-            if param.enum and param_value not in param.enum:
-                errors.append(f"Invalid value '{param_value}' for parameter '{param_name}' in function '{name}'. Expected one of {param.enum}")
-
         return errors
     
     
-    def validate_type(self, param_name: str, param_value: str | int | float | bool | dict | list, param_type: str):
+    def validate_type(self, param: Param, param_value: Any):
         """
             Para types to validate:
                 - string: for string values.
                 - integer: For int values.
                 - number: float for decimal values and int for whole numbers.
                 - boolean:for bool values.
+                - enum: for enum values.
             
             The value must be converted to the type defined in the function definition, in order to
             test and validate the type.
@@ -63,9 +61,15 @@ class FunctionContext(Context):
         """
         
         try:
+            param_type = param.type
+            param_name = param.name
+            
             if param_type == "string":
                 if not isinstance(param_value, str):
                     return f"Parameter '{param_name}' must be a string, but got {type(param_value).__name__}"
+                if param.enum and param_value not in param.enum:
+                    return f"Invalid value '{param_value}' for parameter '{param_name}'. Expected one of {param.enum}"
+                
             elif param_type == "integer":
                 if not isinstance(param_value, int):
                     return f"Parameter '{param_name}' must be an integer, but got {type(param_value).__name__}"

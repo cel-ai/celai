@@ -173,3 +173,44 @@ async def test_validate_types_fail_all(lead):
     assert "param_integer" in res[2] and "must be an integer" in res[2]
     assert "param_bool" in res[3] and "must be a boolean" in res[3]
     
+    
+    
+@pytest.mark.asyncio
+async def test_validate_types_enum(lead):
+    
+    # string: To represent simple text.
+    # integer: For whole numeric values.
+    # float: For numeric values with decimals.
+    # boolean: To represent true or false values.
+    # object (or JSON): To pass more complex structures organized in key-value pairs.
+    # array: Lists of values, which can be of any of the aforementioned types.  
+
+    func = FunctionDefinition(
+        name="test_function",
+        description="Test function",
+        parameters=[
+            Param(name="param1", type="string", enum=["value1", "value2"], 
+                  description="Test param String", required=True),
+            Param(name="param2", type="string", enum=["value3", "value4"], 
+                  description="Test param String", required=True),            
+        ]
+    )
+    
+    prams = {   
+        "param1": "value1",
+        "param2": "value5"
+    }
+
+
+    fc = FunctionContext(
+        lead=lead,
+        params=prams,
+        function_definition=func
+    )
+    
+    res = fc.validate_params(validate_types=True)
+    
+    assert len(res) == 1
+    assert "param2" in res[0] and "Expected one of ['value3', 'value4']" in res[0]
+    
+    
