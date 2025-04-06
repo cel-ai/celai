@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 import inspect
+import json
 
 from loguru import logger as log
 from cel.assistants.function_response import FunctionResponse
@@ -203,13 +204,16 @@ class BaseAssistant(ABC):
         connector = lead.connector
         if func_name in self.function_handlers:
             func = self.function_handlers[func_name]['func']
+            definition = self.function_handlers[func_name]['definition']
             args = inspect.getfullargspec(func).args
 
             ctx = FunctionContext(lead=lead, 
                                   assistant=self,
                                   connector=connector, 
                                   state=self._state_store, 
-                                  history=self._history_store)
+                                  history=self._history_store,
+                                  function_definition=definition,
+                                  params=params)
             
             args_dict = {
                 'session': lead.get_session_id(),
@@ -234,9 +238,24 @@ class BaseAssistant(ABC):
                 response = await func(**kwargs)
             else:
                 response = func(**kwargs)
+
+            if not response:
+                log.warning(f"Function {func_name} returned None")
+                return FunctionResponse(text="Function executed. No response.")
                 
-            assert isinstance(response, FunctionResponse) or response is None, "Function handler must return an instance of CommandResponse or None"
-            return response
+            # assert isinstance(response, FunctionResponse) or response is None, "Function handler must return an instance of CommandResponse or None"
+            if isinstance(response, FunctionResponse):
+                return response
+            
+            # response is Any object?
+            # Try to convert repsonse into a json string
+            try:
+                log.warning(f"Function {func_name} returned a non-FunctionResponse object. Converting to JSON.")                
+                response_json = json.dumps(response)
+                return FunctionResponse(text=response_json)
+            except Exception as e:
+                log.error(f"Function handler must return an instance of FunctionResponse or a JSON serializable object. Error: {e}")
+                return FunctionResponse(text="Function response is not a valid JSON object")
         
         else:
             raise ValueError(f"Function {func_name} not found")
