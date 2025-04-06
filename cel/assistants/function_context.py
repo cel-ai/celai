@@ -37,10 +37,11 @@ class FunctionContext(Context):
             if param_value is None and param.required:
                 errors.append(f"Missing required parameter '{param_name}' in function '{name}'")
             
-            if validate_types:        
-                type_error = self.validate_type(param, param_value)
-                if type_error:
-                    errors.append(type_error)
+            if param_value is not None:
+                if validate_types:        
+                    type_error = self.validate_type(param, param_value)
+                    if type_error:
+                        errors.append(type_error)
                 
         return errors
     
@@ -85,8 +86,5 @@ class FunctionContext(Context):
             return f"Error validating parameter '{param_name}': {str(e)}"
         
         return None
-        
-        
-        
-        
+
         
