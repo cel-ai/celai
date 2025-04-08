@@ -123,10 +123,19 @@ async def process_new_message(ctx: MacawNlpInferenceContext, message: str, on_fu
         # For now, we keep on processing the whole history
 
     if ctx.rag_retriever:
-        rag_response = ctx.rag_retriever.search(message, ctx.settings.core_rag_knn, history + new_messages)
-        if rag_response:
-            for vr in rag_response:
-                prompt += f"\n{vr.text or ''}" 
+        try:
+            log.debug(f"Performing RAG retrieval for message: {message}")
+            rag_response = ctx.rag_retriever.search(message, ctx.settings.core_rag_knn, history + new_messages)
+            if rag_response:
+                log.debug(f"Found {len(rag_response)} RAG results")
+                rag_context = "\nRelevant context:\n"
+                for vr in rag_response:
+                    rag_context += f"- {vr.text or ''}\n"
+                prompt += rag_context
+                log.debug(f"Updated prompt with RAG context: {rag_context}")
+        except Exception as e:
+            log.error(f"Error during RAG retrieval: {e}")
+            # Continue without RAG results 
 
     response = None
     try:
