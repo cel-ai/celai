@@ -122,15 +122,31 @@ async def process_new_message(ctx: MacawNlpInferenceContext, message: str, on_fu
         # or keep on processing the whole history?
         # For now, we keep on processing the whole history
 
+    # Perform RAG retrieval
     if ctx.rag_retriever:
+        rag_instructions = """
+            If provided with context between <rag_context> tags, use this information to enhance your response.
+            The context contains relevant information from the knowledge base. 
+
+            Guidelines for using RAG context:
+            1. Use only factual information from the provided context
+            2. If the context doesn't contain relevant information, rely on your general knowledge
+            3. Combine information coherently without repeating content
+            4. Maintain a professional and accurate tone
+            5. Do not make up information if the context is insufficient
+
+            Base prompt:
+        """
+        prompt = rag_instructions + prompt        
         try:
             log.debug(f"Performing RAG retrieval for message: {message}")
             rag_response = ctx.rag_retriever.search(message, ctx.settings.core_rag_knn, history + new_messages)
             if rag_response:
                 log.debug(f"Found {len(rag_response)} RAG results")
-                rag_context = "\nRelevant context:\n"
+                rag_context = "\n<rag_context>\n"
                 for vr in rag_response:
                     rag_context += f"- {vr.text or ''}\n"
+                rag_context += "</rag_context>\n"
                 prompt += rag_context
                 log.debug(f"Updated prompt with RAG context: {rag_context}")
         except Exception as e:
