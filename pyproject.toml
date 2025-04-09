@@ -22,7 +22,7 @@ Issues = "https://github.com/cel-ai/celai/issues"
 python = "^3.11"
 # Dependencies for the project:
 redis = ">=4.6.0"
-numpy = "^1.26.4"
+numpy = ">=1.26.4"
 loguru = ">=0.7.2"
 chardet = ">=5.2.0"
 marko = "^2.1.0"
