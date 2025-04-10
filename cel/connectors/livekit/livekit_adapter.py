@@ -1,6 +1,6 @@
 """
 LiveKitAdapter masquerades as a livekit.LLM and communicates with Celai
-through HTTP API calls.
+through HTTP API calls with proper handling of stream formatting.
 """
 
 from typing import Dict, Optional, Any
@@ -16,7 +16,6 @@ except ImportError:
     raise ImportError(
         "LiveKit agents library not installed. Please install it using 'pip install livekit-agents'."
     )
-
 
 import httpx
 
@@ -169,21 +168,40 @@ class LiveKitStream(llm.LLMStream):
                         err_txt = await response.text()
                         raise RuntimeError(f"API error => status {response.status_code}: {err_txt}")
 
+                    buffer = ""
+                    
                     # Process the response line by line
                     async for line in response.aiter_lines():
                         if line.startswith("data: "):
                             content = line.removeprefix("data: ").strip()
-
-                            # Check for flush sentinel
-                            if content == str(FlushSentinel()):
+                            
+                            # Handle flush sentinel
+                            if content == "<FLUSH>":
+                                # First send the buffered content if any
+                                if buffer:
+                                    log.debug(f"Sending buffered content: {buffer}")
+                                    chunk = await self._to_livekit_chunk(buffer)
+                                    if chunk:
+                                        self._event_ch.send_nowait(chunk)
+                                    buffer = ""
+                                
+                                # Then send the flush sentinel
                                 self._event_ch.send_nowait(
                                     self._create_livekit_chunk(FlushSentinel())
                                 )
                             elif content:  # Skip empty content
-                                chunk = await self._to_livekit_chunk(content)
-                                if chunk:
-                                    self._event_ch.send_nowait(chunk)
-
+                                # Accumulate content in buffer with proper spacing
+                                if buffer:
+                                    buffer += " " + content
+                                else:
+                                    buffer = content
+                    
+                    # Send any remaining buffered content
+                    if buffer:
+                        chunk = await self._to_livekit_chunk(buffer)
+                        if chunk:
+                            self._event_ch.send_nowait(chunk)
+                    
                     # End of stream
                     self._event_ch.send_nowait(
                         self._create_livekit_chunk(FlushSentinel())
