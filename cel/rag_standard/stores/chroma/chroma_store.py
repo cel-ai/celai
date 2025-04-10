@@ -6,9 +6,10 @@ import numpy as np
 import os
 from chromadb.config import Settings
 from cel.rag_standard.text2vec import OpenAIEmbedding
+from cel.rag_standard.stores.vector_store import VectorStore
 
 
-class ChromaStore:
+class ChromaStore(VectorStore):
     """ChromaDB implementation of the VectorStore interface for RAG Standard"""
     
     def __init__(
