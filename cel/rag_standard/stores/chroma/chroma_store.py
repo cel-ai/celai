@@ -5,6 +5,7 @@ from typing import List, Dict, Any, Optional, Union
 import numpy as np
 import os
 from chromadb.config import Settings
+from chromadb.errors import InvalidCollectionException
 from cel.rag_standard.text2vec import OpenAIEmbedding
 from cel.rag_standard.stores.vector_store import VectorStore
 
@@ -57,7 +58,7 @@ class ChromaStore(VectorStore):
                 name=self.collection_name,
                 embedding_function=self.embedding.get_embedding_function()
             )
-        except ValueError:
+        except (ValueError, InvalidCollectionException):
             log.info(f"Collection '{self.collection_name}' not found, creating new one")
             return self.client.create_collection(
                 name=self.collection_name,

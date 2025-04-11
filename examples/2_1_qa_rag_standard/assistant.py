@@ -47,15 +47,21 @@ from cel.message_enhancers.smart_message_enhancer_openai import SmartMessageEnha
 from cel.assistants.macaw.macaw_assistant import MacawAssistant
 from cel.prompt.prompt_template import PromptTemplate
 from cel.rag_standard.providers.markdown import MarkdownProvider
-from cel.rag_standard.stores import ChromaStore
 from cel.rag_standard.text2vec import OpenAIEmbedding
+from cel.rag_standard.stores import ChromaStore
+from cel.rag.providers.rag_retriever import RAGRetriever
+from cel.model.common import ContextMessage
+from cel.rag.stores.vector_store import VectorRegister
 
 
 # Setup prompt
-prompt = "You are a Q&A Assistant. Called Celia.\
-You can help a user to send money.\
-Keep responses short and to the point.\
-Don't use markdown formatting in your responses."
+prompt = (
+    "You are Celia, a helpful Q&A assistant for Smoothy Inc. food trucks. "
+    "You help users place smoothie orders and answer questions about the company, products, and services. "
+    "Keep your answers short, direct, and friendly. "
+    "Avoid using markdown formatting in your responses. "
+    "Only respond with information relevant to Smoothy Inc. and its smoothies, locations, ingredients, and services."
+)
     
 prompt_template = PromptTemplate(prompt)
 
@@ -97,8 +103,37 @@ for i, chunk in enumerate(chunks):
         metadatas=[metadata]
     )
 
+# Create a custom RAGRetriever that wraps ChromaStore
+class ChromaRAGRetriever(RAGRetriever):
+    def __init__(self, store):
+        self.store = store
+        
+    def search(self, 
+               query: str, 
+               top_k: int = 1, 
+               history: list[ContextMessage] = None,
+               state: dict = {}) -> list[VectorRegister]:
+        results = self.store.search(query, n_results=top_k)
+        
+        # Convert results to VectorRegister objects
+        vector_registers = []
+        for i in range(len(results["ids"])):
+            vector_registers.append(
+                VectorRegister(
+                    id=results["ids"][i],
+                    vector=None,  # We don't have the vector in the results
+                    text=results["documents"][i],
+                    metadata=results["metadatas"][i]
+                )
+            )
+        
+        return vector_registers
+
+# Create a RAGRetriever that wraps the ChromaStore
+rag_retriever = ChromaRAGRetriever(store)
+
 # Register the RAG model with the assistant
-ast.set_rag_retrieval(store)
+ast.set_rag_retrieval(rag_retriever)
 
 
 # Create the Message Gateway - This component is the core of the assistant
