@@ -47,11 +47,37 @@ from cel.message_enhancers.smart_message_enhancer_openai import SmartMessageEnha
 from cel.assistants.macaw.macaw_assistant import MacawAssistant
 from cel.prompt.prompt_template import PromptTemplate
 from cel.rag_standard.providers.markdown import MarkdownProvider
-from cel.rag_standard.text2vec import OpenAIEmbedding
 from cel.rag_standard.stores import ChromaStore
-from cel.rag.providers.rag_retriever import RAGRetriever
 from cel.model.common import ContextMessage
+from cel.rag.providers.rag_retriever import RAGRetriever
 from cel.rag.stores.vector_store import VectorRegister
+
+
+# Create a wrapper class that implements the legacy RAGRetriever interface
+class StandardRAGRetriever(RAGRetriever):
+    def __init__(self, store):
+        self.store = store
+        
+    def search(self, 
+               query: str, 
+               top_k: int = 3, 
+               history: list[ContextMessage] = None,
+               state: dict = {}) -> list[VectorRegister]:
+        results = self.store.search(query, n_results=top_k)
+        
+        # Convert results to VectorRegister objects
+        vector_registers = []
+        for i in range(len(results["ids"])):
+            vector_registers.append(
+                VectorRegister(
+                    id=results["ids"][i],
+                    vector=None,  # We don't have the vector in the results
+                    text=results["documents"][i],
+                    metadata=results["metadatas"][i]
+                )
+            )
+        
+        return vector_registers
 
 
 # Setup prompt
@@ -77,15 +103,16 @@ ast = MacawAssistant(prompt=prompt_template)
 # Initialize the markdown provider
 md_provider = MarkdownProvider()
 
-# Initialize the embedding model
-embedding = OpenAIEmbedding()
-
 # Initialize the vector store
 store = ChromaStore(
     persist_directory="./chroma_db",
     collection_name="demo",
     openai_api_key=os.environ.get("OPENAI_API_KEY")
 )
+
+# Reset the collection before adding new documents
+# NOTE: This is only for testing purposes
+store.reset_collection()
 
 # Load and process the markdown file
 content = md_provider.load_file("examples/2_qa_rag/qa.md")
@@ -99,38 +126,13 @@ for i, chunk in enumerate(chunks):
         "total_chunks": len(chunks)
     }
     store.add_documents(
+        ids=[f"doc_{i}"],
         documents=[chunk],
         metadatas=[metadata]
     )
 
-# Create a custom RAGRetriever that wraps ChromaStore
-class ChromaRAGRetriever(RAGRetriever):
-    def __init__(self, store):
-        self.store = store
-        
-    def search(self, 
-               query: str, 
-               top_k: int = 1, 
-               history: list[ContextMessage] = None,
-               state: dict = {}) -> list[VectorRegister]:
-        results = self.store.search(query, n_results=top_k)
-        
-        # Convert results to VectorRegister objects
-        vector_registers = []
-        for i in range(len(results["ids"])):
-            vector_registers.append(
-                VectorRegister(
-                    id=results["ids"][i],
-                    vector=None,  # We don't have the vector in the results
-                    text=results["documents"][i],
-                    metadata=results["metadatas"][i]
-                )
-            )
-        
-        return vector_registers
-
 # Create a RAGRetriever that wraps the ChromaStore
-rag_retriever = ChromaRAGRetriever(store)
+rag_retriever = StandardRAGRetriever(store)
 
 # Register the RAG model with the assistant
 ast.set_rag_retrieval(rag_retriever)
