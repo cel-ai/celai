@@ -289,9 +289,9 @@ async def blend_message(ctx: MacawNlpInferenceContext, message: str):
     for msg in msgs:
         dialog += f"{msg.type}: {msg.content}\n"
 
-    prompt1 = f"Given this conversation:\n{dialog}"
-    prompt2 = ("Elaborate this response in context to the user"
-               "(translate if needed to users lang, dont use markdown,"
+    prompt1 = f"Given this conversation:\n{dialog} "
+    prompt2 = ("Elaborate this response in context to the user, you can user whatsapp emojis and give the message clearity and shortness. "
+               "(dont use markdown, "
                f"dont include assistan: or user: labels): {message}")
 
     # Prompt > System Message
