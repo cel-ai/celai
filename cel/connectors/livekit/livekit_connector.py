@@ -1,3 +1,12 @@
+""" LIVEKIT Connector
+    This connector is designed to work with LiveKit, a WebRTC platform for real-time communication.
+    It provides a FastAPI router for handling chat completions and streaming responses.
+
+    This connector will use DIRECT stream mode to send messages to the platform. Core events,
+    and Middleware events are available.
+"""
+
+
 from fastapi.responses import StreamingResponse
 from loguru import logger as log
 from fastapi import APIRouter, BackgroundTasks, Request
@@ -5,7 +14,6 @@ from cel.gateway.model.base_connector import BaseConnector
 from cel.gateway.model.message_gateway_context import MessageGatewayContext
 from cel.connectors.livekit.model.livekit_message import LiveKitMessage
 from cel.gateway.message_gateway import StreamMode
-from cel.gateway.model.stream_content_chunk import StreamContentChunk
 from cel.gateway.model.outgoing import OutgoingMessage
 
 class LiveKitConnector(BaseConnector):
@@ -37,11 +45,8 @@ class LiveKitConnector(BaseConnector):
             msg = await LiveKitMessage.load_from_message(payload, connector=self)
             
             if self.gateway:
-                # Use a buffer to accumulate chunks and handle spacing properly
-                current_partial = ""
-                
+            
                 async for chunk in self.gateway.process_message(msg, mode=StreamMode.DIRECT, capture_repsonse=True):
-                    assert isinstance(chunk, StreamContentChunk), "stream chunk must be a StreamContentChunk object"
                     
                     # Send the content with proper formatting
                     if chunk.content:

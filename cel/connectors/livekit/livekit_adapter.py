@@ -3,12 +3,13 @@ LiveKitAdapter masquerades as a livekit.LLM and communicates with Celai
 through HTTP API calls with proper handling of stream formatting.
 """
 
-from typing import Dict, Optional, Any
+from typing import Optional, Any, List
 from loguru import logger as log
 
 # If livekit-agents not installed raise ImportError
 try:
     from livekit.agents import llm
+    from livekit.agents import llm, FunctionTool  
     from livekit.agents.tts import SynthesizeStream
     from livekit.agents.types import APIConnectOptions, DEFAULT_API_CONNECT_OPTIONS
     from livekit.agents.utils import shortuuid
@@ -17,7 +18,12 @@ except ImportError:
         "LiveKit agents library not installed. Please install it using 'pip install livekit-agents'."
     )
 
-import httpx
+try:
+    import httpx
+except ImportError:
+    raise ImportError(
+        "httpx library not installed. Please install it using 'pip install httpx'."
+    )
 
 
 class FlushSentinel(str, SynthesizeStream._FlushSentinel):
@@ -29,41 +35,36 @@ class FlushSentinel(str, SynthesizeStream._FlushSentinel):
 
 
 class LiveKitStream(llm.LLMStream):
-    """
-    Stream implementation for LiveKit that handles communication with Celai API.
-    """
-    
     def __init__(
         self,
         llm: llm.LLM,
+        *,
         chat_ctx: llm.ChatContext,
         session_id: str,
         api_url: str,
         timeout: float = 30.0,
-        fnc_ctx: Optional[Dict] = None,
-        conn_options: APIConnectOptions = None,
-        **kwargs
+        tools: Optional[List[FunctionTool]] = None,     # 👈 reemplaza fnc_ctx
+        conn_options: APIConnectOptions | None = None,
+        **kwargs,
     ):
-        """
-        Initialize the LiveKit stream.
-        
-        Args:
-            llm: The LLM instance
-            chat_ctx: The chat context from LiveKit
-            session_id: The session ID for this conversation
-            api_url: URL for the Celai API endpoint
-            timeout: Timeout for HTTP requests in seconds
-            fnc_ctx: The function context from LiveKit
-            conn_options: Connection options from LiveKit
-            **kwargs: Additional parameters to pass to the API
-        """
-        super().__init__(
-            llm, chat_ctx=chat_ctx, fnc_ctx=fnc_ctx, conn_options=conn_options
-        )
+        # ⬇️  API nueva: tools en vez de fnc_ctx
+        super().__init__(llm, chat_ctx=chat_ctx, tools=tools, conn_options=conn_options)
         self._session_id = session_id
         self._api_url = api_url
         self._timeout = timeout
         self._kwargs = kwargs
+
+    @staticmethod
+    def _create_livekit_chunk(
+        content: str,
+        *,
+        id: str | None = None,
+    ) -> llm.ChatChunk:
+        """Genera un ChatChunk con el nuevo esquema (id + delta)."""
+        return llm.ChatChunk(
+            id=id or shortuuid(),
+            delta=llm.ChoiceDelta(role="assistant", content=content),
+        )
     
     def _to_message(self, msg: llm.ChatMessage) -> str:
         """
@@ -89,47 +90,14 @@ class LiveKitStream(llm.LLMStream):
             return " ".join(text_parts)
         return ""
     
-    @staticmethod
-    def _create_livekit_chunk(content: str, *, id: str | None = None) -> llm.ChatChunk | None:
-        """
-        Create a LiveKit chat chunk from content.
-        
-        Args:
-            content: The content to include in the chunk
-            id: Optional ID for the chunk
-            
-        Returns:
-            A LiveKit chat chunk
-        """
-        return llm.ChatChunk(
-            request_id=id or shortuuid(),
-            choices=[
-                llm.Choice(delta=llm.ChoiceDelta(role="assistant", content=content))
-            ],
-        )
-    
     async def _to_livekit_chunk(self, content: str | Any) -> llm.ChatChunk | None:
-        """
-        Convert text content to a LiveKit chat chunk.
-        
-        Args:
-            content: The content to convert
-            
-        Returns:
-            A LiveKit chat chunk or None if the content is invalid
-        """
         if not content:
             return None
-        
-        request_id = None
-        if hasattr(content, 'id'):
-            request_id = content.id
-        
+        chunk_id = getattr(content, "id", None)
         if isinstance(content, str):
-            return self._create_livekit_chunk(content, id=request_id)
-        elif isinstance(content, dict) and "content" in content:
-            return self._create_livekit_chunk(content["content"], id=content.get("id", request_id))
-        
+            return self._create_livekit_chunk(content, id=chunk_id)
+        if isinstance(content, dict) and "content" in content:
+            return self._create_livekit_chunk(content["content"], id=content.get("id", chunk_id))
         return None
     
     async def _run(self):
@@ -137,8 +105,9 @@ class LiveKitStream(llm.LLMStream):
         try:
             # Find the most recent user message
             input_text = None
-            for m in reversed(self.chat_ctx.messages):
+            for m in reversed(self.chat_ctx.items):
                 if m.role == "user":
+                    print(f"User message found: {m}")
                     input_text = self._to_message(m)
                     break
             
@@ -168,39 +137,28 @@ class LiveKitStream(llm.LLMStream):
                         err_txt = await response.text()
                         raise RuntimeError(f"API error => status {response.status_code}: {err_txt}")
 
-                    buffer = ""
                     
                     # Process the response line by line
-                    async for line in response.aiter_lines():
-                        if line.startswith("data: "):
-                            content = line.removeprefix("data: ").strip()
-                            
-                            # Handle flush sentinel
-                            if content == "<FLUSH>":
-                                # First send the buffered content if any
-                                if buffer:
-                                    log.debug(f"Sending buffered content: {buffer}")
-                                    chunk = await self._to_livekit_chunk(buffer)
-                                    if chunk:
-                                        self._event_ch.send_nowait(chunk)
-                                    buffer = ""
-                                
-                                # Then send the flush sentinel
-                                self._event_ch.send_nowait(
-                                    self._create_livekit_chunk(FlushSentinel())
-                                )
-                            elif content:  # Skip empty content
-                                # Accumulate content in buffer with proper spacing
-                                if buffer:
-                                    buffer += " " + content
-                                else:
-                                    buffer = content
-                    
-                    # Send any remaining buffered content
-                    if buffer:
-                        chunk = await self._to_livekit_chunk(buffer)
-                        if chunk:
-                            self._event_ch.send_nowait(chunk)
+                    async for raw in response.aiter_lines():
+                        if not raw.startswith("data: "):
+                            continue
+
+                        content = raw.removeprefix("data: ").strip("\r\n")
+
+                        if not content:
+                            continue
+
+                        # -- flush sentinel —
+                        if content == "<FLUSH>":
+                            self._event_ch.send_nowait(
+                                self._create_livekit_chunk(FlushSentinel())
+                            )
+                            continue
+
+                        # -- token normal: lo enviamos tal cual, sin tocar espacios —
+                        self._event_ch.send_nowait(
+                            self._create_livekit_chunk(content)
+                        )
                     
                     # End of stream
                     self._event_ch.send_nowait(
@@ -250,9 +208,13 @@ class LiveKitAdapter(llm.LLM):
     
     def chat(
         self,
+        *,
         chat_ctx: llm.ChatContext,
-        fnc_ctx: llm.FunctionContext,
+        tools: list[FunctionTool] | None = None,
         conn_options: APIConnectOptions = DEFAULT_API_CONNECT_OPTIONS,
+        # N extra params
+        **kwargs: Any,
+        
     ) -> llm.LLMStream:
         """
         Create a stream for LiveKit chat.
@@ -267,19 +229,15 @@ class LiveKitAdapter(llm.LLM):
         Returns:
             A LiveKit stream for handling the chat
         """
-        # Extract a stable session ID from the chat context
-        # Using the first message ID as a base to ensure consistency
-        base_id = chat_ctx.messages[0].id if chat_ctx.messages else shortuuid()
+        base_id = chat_ctx.items[0].id if chat_ctx.items else shortuuid()
         session_id = f"livekit:{base_id}"
-        
-        # Return a stream that will process the message
         return LiveKitStream(
             llm=self,
             chat_ctx=chat_ctx,
             session_id=session_id,
             api_url=self._api_url,
             timeout=self._timeout,
-            fnc_ctx=fnc_ctx,
+            tools=tools,
             conn_options=conn_options,
-            **self._kwargs
+            **self._kwargs,
         )

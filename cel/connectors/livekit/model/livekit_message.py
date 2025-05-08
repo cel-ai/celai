@@ -1,8 +1,8 @@
+from loguru import logger as log
 from cel.gateway.model.message import Message
 from cel.gateway.model.conversation_lead import ConversationLead
 from cel.gateway.model.base_connector import BaseConnector
 from cel.connectors.livekit.model.livekit_lead import LiveKitLead
-from loguru import logger as log
 
 class LiveKitMessage(Message):
     """
