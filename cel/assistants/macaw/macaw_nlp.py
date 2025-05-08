@@ -289,15 +289,22 @@ async def blend_message(ctx: MacawNlpInferenceContext, message: str, history_len
     for msg in msgs:
         dialog += f"{msg.type}: {msg.content}\n"
 
-    prompt1 = f"Given this conversation:\n{dialog}"
-    prompt2 = ("Elaborate this response in context to the user"
-               "(translate if needed to users lang, dont use markdown,"
-               f"dont include assistan: or user: labels): {message}")
 
-    # Prompt > System Message
-    messages = [SystemMessage(prompt1), SystemMessage(prompt2)]
+    system_message = ctx.settings.blend_prompt
 
-    res = llm.invoke(messages)
+    # Dynamically generated with current context and message:
+    prompt_message = (
+        f"Conversation context:\n{dialog}\n\n"
+        f"System message to adapt:\n\"{message}\""
+    )
+
+    # Using standard langchain or similar LLM message format:
+    messages = [
+        SystemMessage(system_message),
+        HumanMessage(prompt_message)
+    ]
+
+    res = llm.invoke(messages)    
 
     return res.content
 
