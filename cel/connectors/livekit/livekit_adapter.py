@@ -43,11 +43,10 @@ class LiveKitStream(llm.LLMStream):
         session_id: str,
         api_url: str,
         timeout: float = 30.0,
-        tools: Optional[List[FunctionTool]] = None,     # 👈 reemplaza fnc_ctx
+        tools: Optional[List[FunctionTool]] = None,
         conn_options: APIConnectOptions | None = None,
         **kwargs,
     ):
-        # ⬇️  API nueva: tools en vez de fnc_ctx
         super().__init__(llm, chat_ctx=chat_ctx, tools=tools, conn_options=conn_options)
         self._session_id = session_id
         self._api_url = api_url
@@ -60,7 +59,7 @@ class LiveKitStream(llm.LLMStream):
         *,
         id: str | None = None,
     ) -> llm.ChatChunk:
-        """Genera un ChatChunk con el nuevo esquema (id + delta)."""
+        """Generates a ChatChunk with the new schema (id + delta)."""
         return llm.ChatChunk(
             id=id or shortuuid(),
             delta=llm.ChoiceDelta(role="assistant", content=content),
@@ -212,7 +211,6 @@ class LiveKitAdapter(llm.LLM):
         chat_ctx: llm.ChatContext,
         tools: list[FunctionTool] | None = None,
         conn_options: APIConnectOptions = DEFAULT_API_CONNECT_OPTIONS,
-        # N extra params
         **kwargs: Any,
         
     ) -> llm.LLMStream:
