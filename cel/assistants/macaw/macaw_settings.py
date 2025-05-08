@@ -34,6 +34,13 @@ class MacawSettings:
     blend_timeout: int = 20
     """The timeout to use for the blend processing."""
     blend_max_retries: int = 3
+    """Blend custom prompt"""
+    blend_prompt: str = (
+        "You are responsible for clearly rewriting and adapting technical system messages "
+        "into natural, user-friendly text. Translate the messages according to the user's language "
+        "and conversational tone. Do not include markdown, technical labels (e.g. user:, assistant:). "
+        "Adapt the wording and style to match naturally with conversational context."
+    )
 
     insights_enabled: bool = True
     """Whether to enable the insights processing."""
