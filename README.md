@@ -8,7 +8,8 @@
 <hr>
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/cel-ai/celai/d11d1c81f8193e3de580f6a21376a246fa2d473f/cel/assets/celai_connectors.png" width="600" />
+<!-- https://github.com/cel-ai/celai/blob/main/cel/assets/celai_diagram.png?raw=true -->
+  <img src="https://github.com/cel-ai/celai/blob/main/cel/assets/celai_diagram.png?raw=true" width="800" />
 </p>
 
 
