@@ -9,7 +9,7 @@
 
 <p align="center">
 <!-- https://github.com/cel-ai/celai/blob/main/cel/assets/celai_diagram.png?raw=true -->
-  <img src="https://github.com/cel-ai/celai/blob/main/cel/assets/celai_diagram.png?raw=true" width="800" />
+  <img src="https://github.com/cel-ai/celai/blob/main/cel/assets/celai_diagram.png?raw=true"  />
 </p>
 
 
