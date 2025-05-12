@@ -106,7 +106,7 @@ class LiveKitStream(llm.LLMStream):
             input_text = None
             for m in reversed(self.chat_ctx.items):
                 if m.role == "user":
-                    print(f"User message found: {m}")
+                    log.debug(f"User message found: {m}")
                     input_text = self._to_message(m)
                     break
             
