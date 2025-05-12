@@ -46,7 +46,7 @@ class LiveKitConnector(BaseConnector):
             
             if self.gateway:
             
-                async for chunk in self.gateway.process_message(msg, mode=StreamMode.DIRECT, capture_repsonse=True):
+                async for chunk in self.gateway.process_message(msg, mode=StreamMode.DIRECT, capture_response=True):
                     
                     # Send the content with proper formatting
                     if chunk.content:

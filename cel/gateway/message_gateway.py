@@ -331,7 +331,7 @@ class MessageGateway:
         return False
 
 
-    async def process_message(self, message: Message, mode: StreamMode = StreamMode.SENTENCE, capture_repsonse: bool = False):
+    async def process_message(self, message: Message, mode: StreamMode = StreamMode.SENTENCE, capture_response: bool = False):
         """Process a message using the assistant. 
         The message is sent to the assistant for processing.
         
@@ -405,7 +405,7 @@ class MessageGateway:
                                 assert isinstance(sentence, StreamContentChunk), "stream must be a StreamChunk"
                                 content += sentence.content
                                 
-                                if capture_repsonse:
+                                if capture_response:
                                     yield sentence
                                     # pass
                                 else:
@@ -428,7 +428,7 @@ class MessageGateway:
                                 assert isinstance(chunk, StreamContentChunk), "stream must be a StreamChunk"
                                 content += chunk.content
                                 
-                                if capture_repsonse:
+                                if capture_response:
                                     yield chunk
                                     # pass
                                 else:
@@ -453,7 +453,7 @@ class MessageGateway:
                                 assert isinstance(chunk, StreamContentChunk), "stream must be a StreamChunk"
                                 content += chunk.content
                                 
-                            if capture_repsonse:
+                            if capture_response:
                                 yield chunk
                                 # pass
                             else:
@@ -473,7 +473,7 @@ class MessageGateway:
                     rt.post()
             else: 
                 log.critical("No assistant available")
-                if capture_repsonse:
+                if capture_response:
                     yield "No assistant available"
                     # pass
                 else:
