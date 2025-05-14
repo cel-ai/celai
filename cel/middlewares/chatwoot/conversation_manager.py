@@ -85,16 +85,15 @@ class ConversationManager:
             If not found, create a new contact.
         """
         phone = format_to_e164(contact_ref.phone_number)
-        res = await self.client.search_contact(phone)
+        res = await self.client.search_contact(contact_ref.identifier)
         contacts = res.get("payload", [])
 
         if len(contacts) > 1:
-            log.critical(f"Multiple contacts found for phone: {phone} count: {len(contacts)}")
+            log.critical(f"Multiple contacts found for ref_identifier: {contact_ref.identifier} count: {len(contacts)}")
             # raise Exception(f"Multiple contacts found for identifier: {contact_ref.identifier}")
             
 
         contact = contacts[0] if contacts else None
-
 
         if not contact:
             log.debug(f"Contact with {phone} not found. Creating...")
