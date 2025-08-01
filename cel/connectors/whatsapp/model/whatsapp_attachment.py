@@ -125,10 +125,10 @@ class WhatsappAttachment(FileAttachment):
         msg = data.get("entry")[0].get("changes")[0].get("value").get("messages")[0]
         image = msg.get('image')
         
-        caption = image['caption']
-        mime_type = image['mime_type']
-        file_id = image['id']
-        sha256 = image['sha256']
+        caption = image.get('caption', '')
+        mime_type = image.get('mime_type', 'image/jpeg')
+        file_id = image.get('id')
+        sha256 = image.get('sha256')
         file_url = query_media_url(file_id, token)
         metadata = {
             'sha256': sha256,
