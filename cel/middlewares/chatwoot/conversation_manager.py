@@ -147,6 +147,7 @@ class ConversationManager:
                     custom_attributes=merged_custom_attributes
                 )
                 contact = res.get('payload', {})
+                # contact = await self.client.get_contact(contact.get('id'))
                 if not contact:
                     raise Exception(f"Failed to update contact: {contact_ref} in Chatwoot: {self.base_url}. Message: {res.get('message')}")
 
@@ -211,7 +212,10 @@ class ConversationManager:
                 content=message,
                 private=private,
                 content_type="text",
-                message_type="outgoing"
+                message_type="outgoing",
+                content_attributes={
+                    "celai_generated": True,
+                }
             )
         except Exception as e:
             log.error(f"Middleware Chatwoot: Error sending outgoing message: {e}")
@@ -225,6 +229,7 @@ class ConversationManager:
         try:
             conversation = await self.touch_conversation(contact_ref)
             conversation_id = conversation.id
+
             return await self.client.create_message(
                 account_id=self.account_id,
                 conversation_id=conversation_id,

@@ -95,6 +95,17 @@ class ChatwootClient:
             async with session.put(url, json=payload, headers=self.headers) as response:
                 response_data = await response.json()
                 return response_data
+            
+    async def get_contact(self, contact_id: int) -> Dict[str, Any]:
+        url = f"{self.base_url}/api/v1/accounts/{self.account_id}/contacts/{contact_id}"
+        log.debug(f"Getting contact from Chatwoot url: {url}")
+        
+        async with aiohttp.ClientSession(connector=aiohttp.TCPConnector(ssl=self.ssl)) as session:
+            async with session.get(url, headers=self.headers) as response:
+                response_data = await response.json()
+                return response_data
+    
+            
 
 
     # GET https://app.chatwoot.com/api/v1/accounts/{account_id}/contacts/search?q=identifier:1234567890            

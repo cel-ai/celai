@@ -114,6 +114,12 @@ class ChatwootMiddleware(BaseMiddleware):
                 if payload.get("message_type") == "outgoing" and not payload.get("private"):
                     # This is an outgoing message from Chatwoot
                     # we must send it to the client
+                    content = payload.get("content", "")
+                    if content.startswith("[LOLA]: "):
+                        # This is a message from Celai, we can ignore it
+                        log.debug("Ignoring Celai message from Chatwoot")
+                        return {"status": "ok"}
+                    
                     celai_lead = payload.get("conversation", {}).get("custom_attributes", {}).get("celai_lead")
                     if not celai_lead:
                         log.error("No celai_lead found in the message payload", payload=payload)
@@ -144,13 +150,15 @@ class ChatwootMiddleware(BaseMiddleware):
             
             cto = self.create_contact_from_incoming_message(message)
             # await self.conversation_manager.send_incoming_text_message(cto, message.text)
-            conv = await self.conversation_manager.get_conversation(cto.identifier)
+            asyncio.create_task(self.conversation_manager.send_incoming_text_message(cto, message.text))
             
+            
+            conv = await self.conversation_manager.get_conversation(cto.identifier)
             if conv and conv.assigned:
                 log.warning(f"Conversation {conv.id} is assigned to an agent, skipping Celai response")
                 return False
             
-            asyncio.create_task(self.conversation_manager.send_incoming_text_message(cto, message.text))
+            
             return True
         except Exception as e:
             log.error(f"Middleware Chatwoot: Error processing incoming message: {e}")
@@ -171,7 +179,7 @@ class ChatwootMiddleware(BaseMiddleware):
                     
             if (mode == StreamMode.FULL and not is_summary) or (mode != StreamMode.FULL and is_summary):
                 cto = self.create_contact_from_incoming_message(message)
-                asyncio.create_task(self.conversation_manager.send_outgoing_text_message(cto, str(message)))
+                asyncio.create_task(self.conversation_manager.send_outgoing_text_message(cto,  '[LOLA]: ' + str(message)))
             
             return True
         except Exception as e:
