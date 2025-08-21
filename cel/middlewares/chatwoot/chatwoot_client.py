@@ -63,6 +63,39 @@ class ChatwootClient:
             async with session.post(url, json=payload, headers=self.headers) as response:
                 response_data = await response.json()
                 return response_data
+            
+    async def update_contact(self,
+                                contact_id: int,
+                                inbox_id: Optional[int] = None,
+                                name: Optional[str] = None,
+                                email: Optional[str] = None,
+                                phone_number: Optional[str] = None,
+                                avatar: Optional[str] = None,
+                                avatar_url: Optional[str] = None,
+                                identifier: Optional[str] = None,
+                                custom_attributes: Optional[Dict[str, str]] = None
+                            ) -> Dict[str, Any]:
+        url = f"{self.base_url}/api/v1/accounts/{self.account_id}/contacts/{contact_id}"
+        log.debug(f"Updating contact at Chatwoot url: {url}")
+
+        payload = {
+            'inbox_id': inbox_id,
+            'name': name,
+            'email': email,
+            'phone_number': phone_number,
+            'avatar': avatar,
+            'avatar_url': avatar_url,
+            'identifier': identifier,
+            'custom_attributes': custom_attributes
+        }
+
+        payload = {k: v for k, v in payload.items() if v is not None}
+
+        async with aiohttp.ClientSession(connector=aiohttp.TCPConnector(ssl=self.ssl)) as session:
+            async with session.put(url, json=payload, headers=self.headers) as response:
+                response_data = await response.json()
+                return response_data
+
 
     # GET https://app.chatwoot.com/api/v1/accounts/{account_id}/contacts/search?q=identifier:1234567890            
     async def search_contact(self, query: str) -> Dict[str, Any]:

@@ -1,3 +1,5 @@
+import asyncio
+import json
 from typing import Any, Dict
 from urllib.parse import urljoin
 from fastapi import HTTPException
@@ -5,6 +7,7 @@ import shortuuid
 from cel.assistants.base_assistant import BaseAssistant
 from cel.gateway.message_gateway import StreamMode
 from cel.gateway.model.base_connector import BaseConnector
+from cel.gateway.model.conversation_lead import ConversationLead
 from cel.gateway.model.message import Message
 from cel.gateway.model.message_gateway_context import MessageGatewayContext
 from cel.gateway.model.middleware import BaseMiddleware
@@ -27,10 +30,12 @@ class ChatwootMiddleware(BaseMiddleware):
         self.security_token = shortuuid.uuid()
         
     def create_contact_from_incoming_message(self, message: Message) -> ContactLead:
+        
         return ContactLead(
             identifier=message.lead.get_session_id(),
             name=message.lead.conversation_from.name,
-            phone_number=message.lead.conversation_from.phone
+            phone_number=message.lead.conversation_from.phone,
+            celai_lead=ConversationLead.serialize(message.lead)
         )
 
             
@@ -70,13 +75,62 @@ class ChatwootMiddleware(BaseMiddleware):
                 raise HTTPException(status_code=401, detail="Unauthorized")
             
             # message_type = payload.get("message_type")
-            log.debug(f"Incoming message: {payload}")
-            # Messages that may be sent by a Chatwoot Support Agent directly
-            # to the user. We can ignore these messages.
-            # if message_type == "outgoing":
-                # return {"status": "ok"}
+            try:
+                log.debug(f"Incoming message: {payload}")
+                
+                if payload.get("event") == "conversation_updated":
+                    # A conversation was updated
+                    # we need to check if conversation was assigned to an agent
+                    # if the conversation was assigned to an agent, we need to mark the conversation
+                    # so Celai does not respond to it
+                    changes = payload.get("changed_attributes", [])
+                    # if changes array contains an object with assignee_id property defined
+                    assignee_id = next((item for item in payload.get("changed_attributes", []) if "assignee_id" in item),{}).get('assignee_id')
+                    if assignee_id:
+                        # This means the conversation was assigned to an agent
+                        # we need to mark the conversation as assigned in Celai
+                        # so Celai does not respond to it
+                    
+                        # Conversation was assigned to an agent
+                        messages = payload.get("messages", [])
+                        if messages:
+                            # Get the last message
+                            last_message = messages[-1]
+                            conversation_id = last_message.get("conversation_id")
+                            if conversation_id:
+                                # Mark conversation as assigned
+                                conversation = self.conversation_manager.get_conversation_by_id(conversation_id)
+                                if conversation:
+                                    previous_value = assignee_id.get("previous_value")
+                                    current_value = assignee_id.get("current_value")
+                                    if current_value:
+                                        conversation.assigned = True
+                                        log.debug(f"Conversation {conversation_id} assigned to agent, marking as assigned in Celai")
+                                    elif previous_value and not current_value:
+                                        conversation.assigned = False
+                                        log.debug(f"Conversation {conversation_id} unassigned from agent, marking as unassigned in Celai")
+                                    
+                
+                if payload.get("message_type") == "outgoing" and not payload.get("private"):
+                    # This is an outgoing message from Chatwoot
+                    # we must send it to the client
+                    celai_lead = payload.get("conversation", {}).get("custom_attributes", {}).get("celai_lead")
+                    if not celai_lead:
+                        log.error("No celai_lead found in the message payload", payload=payload)
+                        return {"status": "ok"}
+                    
+                    # Deserialize the lead, context aware
+                    lead = ConversationLead.deserialize(celai_lead)
+                    content = payload.get("content", "")
+                    
+                    await lead.connector.send_text_message(lead=lead, text=content)
+                    log.debug(f"Message from Chatwoot sent to lead: {lead.get_session_id()} with content: {content}")
+                    
+            except Exception as e:
+                log.error(f"Chatwoot Middleware: Error processing incoming message: {e}")
             
-            return {"status": "ok"}
+            finally:
+                return {"status": "ok"}
             
 
         message_endpoint_url = f"{prefix}/messages/{self.security_token}"
@@ -89,8 +143,14 @@ class ChatwootMiddleware(BaseMiddleware):
             assert self.conversation_manager is not None, "ChatwootMiddleware is not initialized"
             
             cto = self.create_contact_from_incoming_message(message)
-            await self.conversation_manager.send_incoming_text_message(cto, message.text)
+            # await self.conversation_manager.send_incoming_text_message(cto, message.text)
+            conv = await self.conversation_manager.get_conversation(cto.identifier)
             
+            if conv and conv.assigned:
+                log.warning(f"Conversation {conv.id} is assigned to an agent, skipping Celai response")
+                return False
+            
+            asyncio.create_task(self.conversation_manager.send_incoming_text_message(cto, message.text))
             return True
         except Exception as e:
             log.error(f"Middleware Chatwoot: Error processing incoming message: {e}")
@@ -111,7 +171,7 @@ class ChatwootMiddleware(BaseMiddleware):
                     
             if (mode == StreamMode.FULL and not is_summary) or (mode != StreamMode.FULL and is_summary):
                 cto = self.create_contact_from_incoming_message(message)
-                await self.conversation_manager.send_outgoing_text_message(cto, str(message))
+                asyncio.create_task(self.conversation_manager.send_outgoing_text_message(cto, str(message)))
             
             return True
         except Exception as e:

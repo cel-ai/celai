@@ -1,3 +1,4 @@
+import asyncio
 from cel.middlewares.chatwoot.chatwoot_client import ChatwootClient
 from cel.middlewares.chatwoot.model import ChatwootConversationRef, ContactLead, InboxRef
 from cel.middlewares.chatwoot.phone_util import format_to_e164
@@ -67,13 +68,28 @@ class ConversationManager:
             Index by identifier
         """
         return self.conversations.get(identifier)
+    
+    def get_conversation_by_id(self, conversation_id: int) -> Optional[ChatwootConversationRef]:
+        """ Get a conversation by Chatwoot conversation ID
+            Conversations are stored in memory for faster access.
+            Index by identifier
+        """
+        for conv in self.conversations.values():
+            if conv.id == conversation_id:
+                return conv
+        return None
 
-    async def create_new_conversation(self, contact_id: int, source_id: int, first_message: str = None) -> Optional[ChatwootConversationRef]:
+    async def create_new_conversation(self, 
+                                      contact_id: int, 
+                                      source_id: int, 
+                                      first_message: str = None,
+                                      custom_attributes: Dict[str, str] = None) -> Optional[ChatwootConversationRef]:
         inbox_id = self.inbox.id
         conversation = await self.client.create_new_conversation(
             source_id=source_id,
             inbox_id=inbox_id,
             contact_id=contact_id,
+            custom_attributes=custom_attributes,
             message={
                 "content": first_message
             } if first_message else None
@@ -84,7 +100,7 @@ class ConversationManager:
         """ Touch a contact by identifier 
             If not found, create a new contact.
         """
-        phone = format_to_e164(contact_ref.phone_number)
+        phone = format_to_e164(contact_ref.phone_number) if contact_ref.phone_number else None
         res = await self.client.search_contact(contact_ref.identifier)
         contacts = res.get("payload", [])
 
@@ -96,18 +112,43 @@ class ConversationManager:
         contact = contacts[0] if contacts else None
 
         if not contact:
-            log.debug(f"Contact with {phone} not found. Creating...")
+            log.debug(f"Contact with phone: {phone} and id:{contact_ref.identifier}  not found. Creating...")
             res = await self.client.create_contact(
                 inbox_id=self.inbox.id,
                 name=contact_ref.name,
                 email=contact_ref.email,
                 phone_number=phone,
-                identifier=contact_ref.identifier
+                identifier=contact_ref.identifier,
+                custom_attributes={
+                    "celai_lead": contact_ref.celai_lead
+                }
             )
             contact = res.get('payload', {}).get('contact')
 
             if not contact:
                 raise Exception(f"Failed to create contact: {contact_ref} in Chatwoot: {self.base_url}. Message: {res.get('message')}")
+        else: 
+            # Update contact with custom attributes if not present
+            cto_celai_lead = contact.get('custom_attributes', {}).get('celai_lead')
+            if not cto_celai_lead or cto_celai_lead != contact_ref.celai_lead:
+                log.debug(f"Updating contact: {contact_ref.identifier} with custom attributes")
+                
+                # Merge custom_attributes instead of overwriting
+                merged_custom_attributes = dict(contact.get('custom_attributes', {}))
+                merged_custom_attributes["celai_lead"] = contact_ref.celai_lead
+                
+                res = await self.client.update_contact(
+                    contact_id=contact.get('id'),
+                    inbox_id=self.inbox.id,
+                    name=contact_ref.name,
+                    email=contact_ref.email,
+                    phone_number=phone,
+                    identifier=contact_ref.identifier,
+                    custom_attributes=merged_custom_attributes
+                )
+                contact = res.get('payload', {})
+                if not contact:
+                    raise Exception(f"Failed to update contact: {contact_ref} in Chatwoot: {self.base_url}. Message: {res.get('message')}")
 
         return contact
 
@@ -132,7 +173,15 @@ class ConversationManager:
             if not source_id:
                 raise Exception(f"Source ID not found for inbox: {self.inbox.id}")
 
-            conversation = await self.create_new_conversation(contact_id=contact.get("id"), source_id=source_id)
+            # Keep celai_lead in custom_attributes
+            # in order to route future incoming messages from Chatwoot 
+            # to the correct Celai channel
+            conversation = await self.create_new_conversation(
+                    contact_id=contact.get("id"), 
+                    source_id=source_id,
+                    custom_attributes={
+                        "celai_lead": contact_ref.celai_lead
+                    })
 
             if not conversation:
                 raise Exception(f"Failed to create conversation for contact: {contact} in Chatwoot: {self.base_url}")
@@ -153,7 +202,7 @@ class ConversationManager:
         """ Send an outgoing message to a contact 
             If contact not found, create a new contact.
         """
-        try:
+        try:           
             conversation = await self.touch_conversation(contact_ref)
             conversation_id = conversation.id
             return await self.client.create_message(
