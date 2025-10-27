@@ -3,7 +3,6 @@ from loguru import logger as log
 from cel.assistants.base_assistant import BaseAssistant
 from cel.gateway.model.base_connector import BaseConnector
 from cel.gateway.model.message import Message
-from cel.voice.deepgram_adapter import DeepgramAdapter
 from cel.gateway.model.attachment import ContactAttachment
 
 
