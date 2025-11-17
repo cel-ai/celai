@@ -66,7 +66,8 @@ class MarkdownRAG(RAGRetriever):
             content=self.content,
             file_path=self.file_path,
             prefix=self.prefix,
-            split_table_rows=self.split_table_rows
+            split_table_rows=self.split_table_rows,
+            encoding=self.encoding
         )
         
         spinner.text = 'Slicing markdown content...'
