@@ -26,50 +26,7 @@ class WhatsappMessage(Message):
     def is_voice_message(self):
         # TODO: Implement voice message check
         return False
-
-    
-    
-# {
-#     "object": "whatsapp_business_account",
-#     "entry": [
-#         {
-#             "id": "103048736088448",
-#             "changes": [
-#                 {
-#                     "value": {
-#                         "messaging_product": "whatsapp",
-#                         "metadata": {
-#                             "display_phone_number": "15550463673",
-#                             "phone_number_id": "105602452496989"
-#                         },
-#                         "contacts": [
-#                             {
-#                                 "profile": {
-#                                     "name": "Alejandro"
-#                                 },
-#                                 "wa_id": "5491166937848"
-#                             }
-#                         ],
-#                         "messages": [
-#                             {
-#                                 "from": "5491166937848",
-#                                 "id": "wamid.HBgNNTQ5MTE2NjkzNzg0OBUCABIYFDNBQTdBQzAzMDMxOTVBQkQ3QzU5AA==",
-#                                 "timestamp": "1717847190",
-#                                 "text": {
-#                                     "body": "hola"
-#                                 },
-#                                 "type": "text"
-#                             }
-#                         ]
-#                     },
-#                     "field": "messages"
-#                 }
-#             ]
-#         }
-#     ]
-# }    
-    
-    
+  
     
     
     @classmethod

@@ -298,7 +298,7 @@ class WhatsappConnector(BaseConnector):
                 "action": {
                     "sections": [
                         {
-                            "title": list_title,
+                            "title": list_title[:24] if list_title else None,
                             "rows": [json.loads(str(item)) for item in items]
                         }
                     ],

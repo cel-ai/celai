@@ -15,6 +15,30 @@ class MessageAttachment(ABC):
     def __init__(self, type: MessageAttachmentType = None) -> None:
         self.type = type
         
+class ContactAttachment(MessageAttachment):
+    def __init__(self, 
+                 name: str = None, 
+                 metadata: any = None):
+        super().__init__(type=MessageAttachmentType.CONTACT)
+        self.name: str = name
+        self.metadata: any = metadata
+        
+    def to_dict(self):
+        data = {
+            'name': self.name,
+            'metadata': self.metadata
+        }
+        return data
+
+    @classmethod
+    def from_dict(cls, attachment_dict):
+        return ContactAttachment(
+            name=attachment_dict.get("name"),
+            metadata=attachment_dict.get("metadata")
+        )
+
+    def __str__(self):
+        return f"ContactAttachment: {self.name}"
 
 class LocationAttachment(MessageAttachment):
     def __init__(self, 
