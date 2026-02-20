@@ -190,10 +190,12 @@ class WhatsappConnector(BaseConnector):
     async def __mark_as_read(self, message_id: str) -> dict:
         """Mark a message as read"""
         assert message_id is not None, "Message ID not provided"
+        
         payload = {
-            "messaging_product": "whatsapp",
-            "status": "read",
-            "message_id": message_id,
+          "messaging_product": "whatsapp",
+          "status": "read",
+          "message_id": message_id,
+          "typing_indicator": { "type": "text" }
         }
 
         async with aiohttp.ClientSession(connector=aiohttp.TCPConnector(ssl=self.ssl)) as session:
