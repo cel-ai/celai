@@ -246,6 +246,9 @@ class BaseAssistant(ABC):
             # assert isinstance(response, FunctionResponse) or response is None, "Function handler must return an instance of CommandResponse or None"
             if isinstance(response, FunctionResponse):
                 return response
+
+            if isinstance(response, EventResponse):
+                return response
             
             # response is Any object?
             # Try to convert repsonse into a json string

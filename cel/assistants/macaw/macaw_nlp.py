@@ -4,6 +4,7 @@ import json
 import traceback
 from loguru import logger as log
 from cel.assistants.function_response import FunctionResponse
+from cel.assistants.common import EventResponse
 from cel.assistants.macaw.custom_chat_models.chat_open_router import ChatOpenRouter
 from cel.assistants.macaw.macaw_inference_context import MacawNlpInferenceContext
 from cel.assistants.macaw.macaw_history_adapter import MacawHistoryAdapter
@@ -155,6 +156,7 @@ async def process_new_message(ctx: MacawNlpInferenceContext, message: str, on_fu
             # the max number of calls is reached
             # easy way to avoid infinite loop$
                 
+            cancel_ai = False
             for idx in range(ctx.settings.core_max_function_calls_in_message):
                 if response.tool_calls:
                     # Do all function calls
@@ -170,6 +172,11 @@ async def process_new_message(ctx: MacawNlpInferenceContext, message: str, on_fu
                             response_text = None
                             if isinstance(func_output, FunctionResponse):
                                 response_text = func_output.text
+                            elif isinstance(func_output, EventResponse):
+                                if func_output.disable_ai_response:
+                                    cancel_ai = True
+                                    log.debug(f"Function {name} requested cancel_ai_response")
+                                response_text = "ok"
                             elif isinstance(func_output, str):
                                 response_text = func_output
                             else:
@@ -191,6 +198,11 @@ async def process_new_message(ctx: MacawNlpInferenceContext, message: str, on_fu
                             # ----------
                             # NOTE: Removed due broken behavior. If one function fails, the history ends badly. 
                             # ToolCall messages end with no ToolMessage. It's better to have a message with the error.
+
+                    # Si cancel_ai_response fue solicitado, no re-invocar al LLM
+                    if cancel_ai:
+                        log.debug("cancel_ai_response: skipping further LLM invocation")
+                        break
 
                     # Process response
                     response = llm_with_tools.invoke(history + new_messages)

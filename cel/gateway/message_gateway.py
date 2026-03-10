@@ -453,14 +453,15 @@ class MessageGateway:
                                 assert isinstance(chunk, StreamContentChunk), "stream must be a StreamChunk"
                                 content += chunk.content
                                 
-                            if capture_response:
-                                yield chunk
-                                # pass
-                            else:
-                                await self.dispatch_outgoing_genai_message(message, 
-                                                                           text=content, 
-                                                                           is_partial=False,
-                                                                           mode=mode)                                
+                            if content.strip():
+                                if capture_response:
+                                    yield chunk
+                                    # pass
+                                else:
+                                    await self.dispatch_outgoing_genai_message(message, 
+                                                                               text=content, 
+                                                                               is_partial=False,
+                                                                               mode=mode)                                
                                 
                         
                         log.debug(f"Assistant response: {content}")
