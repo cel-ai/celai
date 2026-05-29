@@ -157,6 +157,7 @@ async def process_new_message(ctx: MacawNlpInferenceContext, message: str, on_fu
             # easy way to avoid infinite loop$
                 
             cancel_ai = False
+            yielded_to_gateway = False
             for idx in range(ctx.settings.core_max_function_calls_in_message):
                 if response.tool_calls:
                     # Do all function calls
@@ -207,9 +208,29 @@ async def process_new_message(ctx: MacawNlpInferenceContext, message: str, on_fu
                     # Process response
                     response = llm_with_tools.invoke(history + new_messages)
                     new_messages.append(response)
+                    if not response.tool_calls:
+                        yielded_to_gateway = True
+                        yield StreamContentChunk(content=response.content, is_partial=True)
+                        break
                 else:
+                    yielded_to_gateway = True
                     yield StreamContentChunk(content=response.content, is_partial=True)
                     break
+
+            if not yielded_to_gateway:
+                content = response.content if response else None
+                if (
+                    response
+                    and not response.tool_calls
+                    and isinstance(content, str)
+                    and content.strip()
+                ):
+                    log.warning(
+                        "Macaw NLP: yielding final response after tool loop exhausted "
+                        f"(session={ctx.lead.get_session_id()})"
+                    )
+                    yielded_to_gateway = True
+                    yield StreamContentChunk(content=content, is_partial=True)
                 
             # TODO: This validation may not be needed
             # -----------------------------------------------
