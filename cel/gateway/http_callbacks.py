@@ -158,3 +158,12 @@ class HttpCallbackProvider(ABC):
         
         log.debug(f"Generated link: {link}")
         return link
+
+    def remove_callback(self, handler: callable) -> bool:
+        """Cancels a registered callback by handler reference, preventing future execution.
+        Returns True if the callback existed and was removed, False otherwise.
+        """
+        callback_id = id(handler)
+        removed = self.handlers.pop(callback_id, None)
+        log.debug(f"remove_callback: handler_id={callback_id}, removed={removed is not None}")
+        return removed is not None
