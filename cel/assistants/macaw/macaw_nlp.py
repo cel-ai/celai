@@ -127,7 +127,12 @@ async def process_new_message(ctx: MacawNlpInferenceContext, message: str, on_fu
         rag_response = ctx.rag_retriever.search(message, ctx.settings.core_rag_knn, history + new_messages)
         if rag_response:
             for vr in rag_response:
-                prompt += f"\n{vr.text or ''}" 
+                prompt += f"\n{vr.text or ''}"
+            # Re-inject RAG into the SystemMessage actually sent to the LLM.
+            # history[0] was built before retrieval; updating only `prompt`
+            # would leave the model without the retrieved context.
+            if history and getattr(history[0], "type", None) == "system":
+                history[0] = SystemMessage(prompt)
 
     response = None
     try:
