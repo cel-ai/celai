@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.7.4](https://github.com/cel-ai/celai/compare/v0.7.3...v0.7.4) (2026-07-17)
+
+
+### Bug Fixes
+
+* Add support for EventResponse across the assistant pipeline so functions can return events that optionally disable further AI responses. BaseAssistant now returns EventResponse where appropriate. Macaw NLP imports EventResponse, checks for it during tool calls, sets a cancel_ai flag when disable_ai_response is requested, logs the action, and skips the subsequent LLM invocation. MessageGateway now avoids yielding or dispatching empty streamed content by only handling non-blank content. These changes prevent unwanted LLM replies after event handlers and stop empty partial messages from being sent. ([65104e5](https://github.com/cel-ai/celai/commit/65104e557471dfd3d018e633bdb6565bbedc62e4))
+
 ## [0.7.3](https://github.com/cel-ai/celai/compare/v0.7.2...v0.7.3) (2026-06-08)
 
 
