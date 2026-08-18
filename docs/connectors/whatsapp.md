@@ -83,6 +83,25 @@ gateway.run()
 ```
 
 
+## User identity (phone and BSUID)
+
+WhatsApp Cloud API webhooks now include a business-scoped user ID (`user_id` / `from_user_id`) in addition to the phone number (`wa_id` / `from`). Users who adopt a username may omit the phone number.
+
+`WhatsappLead` stores both when present:
+
+- `lead.phone`: phone number (`wa_id` or `from`), if Meta included it
+- `lead.user_id`: BSUID (`contacts[].user_id` or `messages[].from_user_id`)
+- `get_session_id()`: uses the phone when available so existing sessions stay stable; falls back to `user_id`
+- Outbound Cloud API: `to` when a phone is available, `recipient` when only a BSUID is available
+
+```python
+lead.destination_fields()
+# {"to": "16315551181"}           # phone present
+# {"recipient": "US.1349..."}     # BSUID only
+```
+
+Do not assume `contacts[].wa_id` is always present.
+
 ## Notes
 
 - Ensure that the `WHATSAPP_TOKEN` Meta Access Token and `WHATSAPP_PHONE_NUMBER_ID` Phone Number ID are valid and have the necessary permissions to interact with the WhatsApp Cloud API.
