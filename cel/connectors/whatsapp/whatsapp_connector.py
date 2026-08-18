@@ -226,24 +226,25 @@ class WhatsappConnector(BaseConnector):
         
         assert isinstance(lead, WhatsappLead), "lead must be instance of WhatsappLead"
         
+        dest_label = lead.phone or lead.user_id
         data = {
             "messaging_product": "whatsapp",
             "recipient_type": "individual",
-            "to": lead.phone,
             "type": "text",
             "text": {
                 "preview_url": False, 
                 "body": text
             },
+            **lead.destination_fields(),
         }
         
         headers = build_headers(self.token)
-        log.info(f"Sending message to {lead.phone}")
+        log.info(f"Sending message to {dest_label}")
         
         async with aiohttp.ClientSession(connector=aiohttp.TCPConnector(ssl=self.ssl)) as session:
             async with session.post(f"{self.url}", headers=headers, json=data) as r:
                 if r.status == 200:
-                    log.info(f"Message sent to {lead.phone}")
+                    log.info(f"Message sent to {dest_label}")
                 else:
                     log.error(await r.json())
 
@@ -291,7 +292,7 @@ class WhatsappConnector(BaseConnector):
         #   ]
         
         response = await self._send_select(
-            recipient_id=lead.phone,
+            destination=lead.destination_fields(),
             list={
                 "type": "list",
                 "header": {"type": "text", "text": header} if header else None,
@@ -347,7 +348,7 @@ class WhatsappConnector(BaseConnector):
         buttons = [ReplyButton(title=opt) for opt in options]
         
         response = await self._send_reply_button(
-            recipient_id=lead.phone,
+            destination=lead.destination_fields(),
             button={
                 "type": "button",
                 "header": {"type": "text", "text": header} if header else None,
@@ -392,12 +393,13 @@ class WhatsappConnector(BaseConnector):
         assert len(links) > 0, "Links must be a list of dictionaries"
         assert text is not None, "Text not provided"
         
-        log.debug(f"Sending Link Message to phone: {lead.phone}, text: {text}, url: {links}")
+        dest_label = lead.phone or lead.user_id
+        log.debug(f"Sending Link Message to {dest_label}, text: {text}, url: {links}")
         response = await self._send_link(
             link_label=links[0].get("text"),
             link=links[0].get("url"),
             body=text,
-            recipient_id=lead.phone,
+            destination=lead.destination_fields(),
         )
          
     async def send_typing_action(self, lead):
@@ -464,11 +466,11 @@ class WhatsappConnector(BaseConnector):
                          link_label: str, 
                          body: str | None,
                          link: str,
-                         recipient_id: str,
+                         destination: dict,
                          footer: str | None = None,
                          image_url: str = None) -> None:
         await self._send_cta_url(
-            recipient_id=recipient_id,
+            destination=destination,
             cta_url={
                 "type": "cta_url",
                 "header": {
@@ -507,64 +509,64 @@ class WhatsappConnector(BaseConnector):
             data["footer"] = {"text": button.get("footer")}
         return data
 
-    async def _send_button(self, button: Dict[Any, Any], recipient_id: str) -> Dict[Any, Any]:
+    async def _send_button(self, button: Dict[Any, Any], destination: dict) -> Dict[Any, Any]:
         """
         Sends an interactive buttons message to a WhatsApp user
 
         Args:
             button[dict]: A dictionary containing the button data(rows-title may not exceed 20 characters)
-            recipient_id[str]: Phone number of the user with country code wihout +
+            destination[dict]: Cloud API destination (`to` and/or `recipient`)
 
         check https://github.com/Neurotech-HQ/whatsapp#sending-interactive-reply-buttons for an example.
         """
-        assert isinstance(recipient_id, str) and recipient_id != "", "Recipient ID must be a string"
+        assert isinstance(destination, dict) and destination, "Destination must be a non-empty dictionary"
         assert isinstance(button, dict), "Button must be a dictionary"
         
+        dest_label = destination.get("to") or destination.get("recipient")
         data = {
             "messaging_product": "whatsapp",
-            "to": recipient_id,
             "type": "interactive",
             "interactive": self._create_button(button),
+            **destination,
         }
         
-        log.debug(f"Sending buttons to {recipient_id}")
+        log.debug(f"Sending buttons to {dest_label}")
         headers = build_headers(self.token)
         async with aiohttp.ClientSession(connector=aiohttp.TCPConnector(ssl=self.ssl)) as session:
             async with session.post(f"{self.url}", headers=headers, json=data) as r:
                 if r.status == 200:
-                    log.debug(f"Message sent to {recipient_id}")
+                    log.debug(f"Message sent to {dest_label}")
                 else:
                     log.error(await r.json())     
                     
     async def _send_select(
         self, 
         list: Dict[Any, Any], 
-        recipient_id: str
+        destination: dict
     ) -> Dict[Any, Any]:
         """
         Sends an interactive list message to a WhatsApp user
 
         Args:
             button[dict]: A dictionary containing the button data
-            recipient_id[str]: Phone number of the user with country code wihout +
+            destination[dict]: Cloud API destination (`to` and/or `recipient`)
 
         Note:
             The maximum number of buttons is 3, more than 3 buttons will rise an error.
         """
-
-        
+        dest_label = destination.get("to") or destination.get("recipient")
         data = {
             "messaging_product": "whatsapp",
             "recipient_type": "individual",
-            "to": recipient_id,
             "type": "interactive",
             "interactive": list,
+            **destination,
         }
         headers = build_headers(self.token)
         async with aiohttp.ClientSession(connector=aiohttp.TCPConnector(ssl=self.ssl)) as session:
             async with session.post(f"{self.url}", headers=headers, json=data) as r:
                 if r.status == 200:
-                    log.debug(f"Message sent to {recipient_id}")
+                    log.debug(f"Message sent to {dest_label}")
                 else:
                     log.error(await r.json())                       
                        
@@ -572,14 +574,14 @@ class WhatsappConnector(BaseConnector):
     async def _send_reply_button(
         self, 
         button: Dict[Any, Any], 
-        recipient_id: str
+        destination: dict
     ) -> Dict[Any, Any]:
         """
         Sends an interactive reply buttons[menu] message to a WhatsApp user
 
         Args:
             button[dict]: A dictionary containing the button data
-            recipient_id[str]: Phone number of the user with country code wihout +
+            destination[dict]: Cloud API destination (`to` and/or `recipient`)
 
         Note:
             The maximum number of buttons is 3, more than 3 buttons will rise an error.
@@ -587,47 +589,49 @@ class WhatsappConnector(BaseConnector):
         if len(button["action"]["buttons"]) > 3:
             raise ValueError("The maximum number of buttons is 3.")
         
+        dest_label = destination.get("to") or destination.get("recipient")
         data = {
             "messaging_product": "whatsapp",
             "recipient_type": "individual",
-            "to": recipient_id,
             "type": "interactive",
             "interactive": button,
+            **destination,
         }
         headers = build_headers(self.token)
         async with aiohttp.ClientSession(connector=aiohttp.TCPConnector(ssl=self.ssl)) as session:
             async with session.post(f"{self.url}", headers=headers, json=data) as r:
                 if r.status == 200:
-                    log.debug(f"Message sent to {recipient_id}")
+                    log.debug(f"Message sent to {dest_label}")
                 else:
                     log.error(await r.json())     
                     
     async def _send_cta_url(
         self, cta_url: Dict[Any, Any], 
-        recipient_id: str
+        destination: dict
     ) -> Dict[Any, Any]:
         """
         Sends a call to action url message to a WhatsApp user
 
         Args:
             cta_url[dict]: A dictionary containing the cta url data
-            recipient_id[str]: Phone number of the user with country code wihout +
+            destination[dict]: Cloud API destination (`to` and/or `recipient`)
 
         check
         
         """
+        dest_label = destination.get("to") or destination.get("recipient")
         data = {
             "messaging_product": "whatsapp",
             "recipient_type": "individual",
-            "to": recipient_id,
             "type": "interactive",
             "interactive": cta_url,
+            **destination,
         }
         headers = build_headers(self.token)
         async with aiohttp.ClientSession(connector=aiohttp.TCPConnector(ssl=self.ssl)) as session:
             async with session.post(f"{self.url}", headers=headers, json=data) as r:
                 if r.status == 200:
-                    log.debug(f"Message sent to {recipient_id}")
+                    log.debug(f"Message sent to {dest_label}")
                 else:
                     log.error(await r.json())     
 
@@ -635,10 +639,18 @@ class WhatsappConnector(BaseConnector):
 
     async def send_document_message(self, lead, content: str | bytes | BinaryIO, 
                                     filename:str, caption:str = None, metadata: dict = {}, is_partial: bool = True):
-        log.debug(f"Sending document {filename} (caption:{caption}) message to {lead.phone}")
+        dest_label = lead.phone or lead.user_id
+        log.debug(f"Sending document {filename} (caption:{caption}) message to {dest_label}")
         
         assert isinstance(lead, WhatsappLead), "lead must be instance of WhatsappLead"
         assert isinstance(filename, str), "filename must be a string"
+        if not dest_label:
+            raise ValueError("WhatsappLead has neither phone nor user_id")
+        if not lead.phone and lead.user_id:
+            log.warning(
+                "Sending document using BSUID; pywa `to` may not accept recipient. "
+                f"user_id={lead.user_id}"
+            )
         
         from pywa import WhatsApp
         
@@ -654,7 +666,7 @@ class WhatsappConnector(BaseConnector):
 
         # Send the document
         wa.send_document(
-            to=lead.phone,
+            to=dest_label,
             document=content,
             filename=filename,
             caption=caption,

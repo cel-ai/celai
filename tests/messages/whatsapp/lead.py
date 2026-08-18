@@ -64,11 +64,12 @@ async def test_parse_lead():
     assert lead.conversation_from.name == 'John Doe'
     assert lead.conversation_from.phone == '13566693XXXX'
     assert lead.conversation_from.id == '13566693XXXX'
-    
+    assert lead.user_id is None
+    assert lead.destination_fields() == {"to": "13566693XXXX"} 
     
     
 @pytest.mark.asyncio
-async def test_parse_lead(connector):
+async def test_parse_lead_with_connector(connector):
 
     lead = WhatsappLead.from_whatsapp_message(sample_message, connector=connector)
     assert isinstance(lead, WhatsappLead)
