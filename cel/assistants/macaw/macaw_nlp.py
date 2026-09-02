@@ -137,16 +137,24 @@ async def process_new_message(ctx: MacawNlpInferenceContext, message: str, on_fu
     response = None
     try:
         # Process LLM invoke in a stream
+        # Buffer content to avoid yielding preamble text before a tool call.
+        # We only know if a tool call will follow once the full stream is consumed,
+        # so we accumulate content and yield it only if no tool call was detected.
+        buffered_content = ""
         async for delta in llm_with_tools.astream(history + new_messages):
             assert isinstance(delta, AIMessageChunk)
             if response is None:
                 response = delta
             else:
                 response += delta
-                
-            # Yield the response if it's not a tool call
-            if not response.tool_calls:
-                yield StreamContentChunk(content=delta.content, is_partial=True)
+
+            if delta.content:
+                buffered_content += delta.content
+
+        # After the stream is fully consumed, yield buffered text only if
+        # no tool call was triggered (tool calls discard the preamble text).
+        if not response.tool_calls and buffered_content:
+            yield StreamContentChunk(content=buffered_content, is_partial=True)
                 
                 
         # Now we have the full response
