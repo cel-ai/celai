@@ -141,7 +141,7 @@ Default Agent
 If you are not sure, please select the default agent.
 Returns only the name of the assistant."""
 
-        asts = "\n".join([f"{agent.name}" for i, agent in enumerate(self._assistants)])
+        asts = "\n".join([f"{agent.name}: {agent.description}" for i, agent in enumerate(self._assistants)])
         
         prompt = LangchainPromptTemplate.from_template(prompt_str)
         
