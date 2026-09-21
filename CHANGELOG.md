@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.7.7](https://github.com/cel-ai/celai/compare/v0.7.6...v0.7.7) (2026-09-21)
+
+
+### Bug Fixes
+
+* close high-severity auth, callback, and event-loop bugs ([706c290](https://github.com/cel-ai/celai/commit/706c2908e69ddccc74ec066ebc3f6f3c5406144d))
+
 ## [0.7.6](https://github.com/cel-ai/celai/compare/v0.7.5...v0.7.6) (2026-09-02)
 
 
