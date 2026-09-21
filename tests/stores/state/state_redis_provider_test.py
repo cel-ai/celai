@@ -4,6 +4,7 @@ import pytest
 import fakeredis.aioredis
 import pytest_asyncio
 import redis
+import redis.asyncio
 from cel.gateway.model.conversation_lead import ConversationLead
 from cel.stores.state.state_redis_provider import RedisChatStateProvider
 
@@ -17,9 +18,16 @@ def redis_client():
     redis_client = fakeredis.FakeRedis()
     return redis_client
 
-@pytest.fixture
-def store(redis_client):
-    return RedisChatStateProvider(redis_client, 's')
+@pytest_asyncio.fixture()
+def async_redis_client():
+    return fakeredis.aioredis.FakeRedis()
+
+@pytest.fixture(params=["sync", "async"])
+def store(request, redis_client, async_redis_client):
+    """The provider must keep working with a legacy synchronous client while
+    driving a redis.asyncio client natively, so both are exercised here."""
+    client = redis_client if request.param == "sync" else async_redis_client
+    return RedisChatStateProvider(client, 's')
 
 @pytest.mark.asyncio
 async def test_set_key_value(store: RedisChatStateProvider, lead):
@@ -65,3 +73,12 @@ async def test_clear_all_stores(store: RedisChatStateProvider):
     
     s = await store.get_store(sessionId2)
     assert s == None
+
+
+@pytest.mark.asyncio
+async def test_url_builds_an_async_client():
+    """A blocking redis round trip stalls every conversation on the event loop,
+    so a connection url must produce a redis.asyncio client."""
+    store = RedisChatStateProvider("redis://localhost:6379/0")
+    assert store.is_async is True
+    assert isinstance(store.client, redis.asyncio.Redis)

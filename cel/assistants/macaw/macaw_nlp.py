@@ -20,6 +20,9 @@ from langchain_core.messages import (
 from langsmith import traceable
 
 DEFAULT_PROMPT = "Create an assistant funny and sarcastic, dark humor chatbot."
+# Sent when the tool loop ends without any text for the user, so the turn never
+# finishes in silence.
+TOOL_LOOP_FALLBACK_MESSAGE = "In this moment I can't process this request."
 LLM_DEFAULT_KWARGS = {
     "model": "gpt-4o",
     "temperature": 0,
@@ -219,7 +222,7 @@ async def process_new_message(ctx: MacawNlpInferenceContext, message: str, on_fu
                         break
 
                     # Process response
-                    response = llm_with_tools.invoke(history + new_messages)
+                    response = await llm_with_tools.ainvoke(history + new_messages)
                     new_messages.append(response)
                     if not response.tool_calls:
                         yielded_to_gateway = True
@@ -230,20 +233,40 @@ async def process_new_message(ctx: MacawNlpInferenceContext, message: str, on_fu
                     yield StreamContentChunk(content=response.content, is_partial=True)
                     break
 
-            if not yielded_to_gateway:
-                content = response.content if response else None
-                if (
-                    response
-                    and not response.tool_calls
-                    and isinstance(content, str)
-                    and content.strip()
-                ):
+            # cancel_ai is the only case where staying silent is intentional.
+            if not yielded_to_gateway and not cancel_ai:
+                # The loop can also end with the call budget exhausted and a tool
+                # call still pending. That last AI message carries tool_calls with
+                # no matching ToolMessage, which poisons the history for the next
+                # turn, so drop it and ask the model for a plain answer instead.
+                if response is not None and response.tool_calls:
+                    log.warning(
+                        "Macaw NLP: max function calls reached with a pending tool call "
+                        f"(session={ctx.lead.get_session_id()}), forcing a final answer"
+                    )
+                    if new_messages and new_messages[-1] is response:
+                        new_messages.pop()
+                    try:
+                        response = await llm.ainvoke(history + new_messages)
+                        new_messages.append(response)
+                    except Exception as e:
+                        log.error(f"Macaw NLP: error forcing a final answer: {e}")
+                        response = None
+
+                content = response.content if response is not None else None
+                yielded_to_gateway = True
+                if isinstance(content, str) and content.strip():
                     log.warning(
                         "Macaw NLP: yielding final response after tool loop exhausted "
                         f"(session={ctx.lead.get_session_id()})"
                     )
-                    yielded_to_gateway = True
                     yield StreamContentChunk(content=content, is_partial=True)
+                else:
+                    log.error(
+                        "Macaw NLP: tool loop produced no content "
+                        f"(session={ctx.lead.get_session_id()}), sending fallback message"
+                    )
+                    yield StreamContentChunk(content=TOOL_LOOP_FALLBACK_MESSAGE, is_partial=True)
                 
             # TODO: This validation may not be needed
             # -----------------------------------------------
@@ -291,8 +314,14 @@ async def process_new_message(ctx: MacawNlpInferenceContext, message: str, on_fu
     except Exception as e:
         # Leave the unhandled user message in the history?????
         # TODO: Check if this is the correct behavior
-        await history_store.append_to_history(ctx.lead, response)
-        
+        # `response` is still None when the failure happened before the first
+        # chunk arrived, and persisting it must never mask the original error.
+        if response is not None:
+            try:
+                await history_store.append_to_history(ctx.lead, response)
+            except Exception as history_error:
+                log.error(f"Macaw NLP: Error appending partial response to history: {history_error}")
+
         raise ValueError("Macaw NLP: Error processing message") from e
 
         

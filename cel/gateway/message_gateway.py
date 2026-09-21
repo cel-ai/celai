@@ -3,6 +3,7 @@ from typing import Callable
 from langsmith import tracing_context
 from loguru import logger as log
 from fastapi import APIRouter, Depends, FastAPI, HTTPException, Request, Response
+from fastapi.responses import JSONResponse
 from loguru import logger as log
 
 from cel.assistants.common import EventResponse
@@ -139,21 +140,19 @@ class MessageGateway:
             @self.app.middleware("http")
             async def secure_middleware(request: Request, call_next):
                 
-                if path_is_secure(request.url.path):             
+                if path_is_secure(request.url.path):
+                    # The request must not reach the route handler when the key is
+                    # missing or wrong: calling call_next first would execute the
+                    # protected action and only then dress the response as a 401.
                     if gateway_api_key_header not in request.headers:
-                        response = await call_next(request)
-                        response.status_code = 401
                         log.error(f"API key not found in headers: {request.url}")
-                        log.error(f"Headers: {request.headers}")
                         log.warning(f"Add your API Key into header: {gateway_api_key_header}")
-                        return response
+                        return JSONResponse(status_code=401, content={"detail": "Unauthorized"})
                     
                     key = request.headers[gateway_api_key_header]
                     if key != gateway_api_key:
-                        response = await call_next(request)
-                        response.status_code = 401
-                        log.error(f"Invalid API key: {request.url} invalid key: {key}")
-                        return response
+                        log.error(f"Invalid API key: {request.url}")
+                        return JSONResponse(status_code=401, content={"detail": "Unauthorized"})
                 
                 response = await call_next(request)
                 return response

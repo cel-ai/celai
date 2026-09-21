@@ -7,6 +7,7 @@ from fastapi import BackgroundTasks, HTTPException, Request
 from fastapi.responses import RedirectResponse
 from pydantic import BaseModel
 import json
+import shortuuid
 from dataclasses import asdict, dataclass
 from cel.assistants.base_assistant import BaseAssistant
 from cel.gateway.model.base_connector import BaseConnector
@@ -20,7 +21,7 @@ from .utils import decode_jwt, generate_encryption_key, generate_link, generate_
 @dataclass  
 class CallbackEntry(ABC):
     handler: callable
-    redirect_url: str = None,
+    redirect_url: str = None
     single_use: bool = True
 
     
@@ -71,46 +72,50 @@ class HttpCallbackProvider(ABC):
             
             handler = entry.handler
             params_dict = {}
-            try: 
-                # Convert QueryParams to dict
-                params_dict.update(dict(request.query_params))
-                # get request body if it's a POST request
-                if self.http_verb.upper() == "POST":
-                    body = await request.body()
-                    try:
-                        body_dict = json.loads(body)
-                        params_dict.update(body_dict)
-                    except Exception as e:
-                        log.error(f"Error parsing body: {e}")
-                        raise HTTPException(status_code=401, detail="Error parsing body")
-                    
+
+            # Convert QueryParams to dict
+            params_dict.update(dict(request.query_params))
+            # get request body if it's a POST request
+            if self.http_verb.upper() == "POST":
+                body = await request.body()
+                try:
+                    body_dict = json.loads(body)
+                    params_dict.update(body_dict)
+                except Exception as e:
+                    log.error(f"Error parsing body: {e}")
+                    raise HTTPException(status_code=401, detail="Error parsing body")
+
+            # Claim the callback before running the handler. dict.pop is atomic,
+            # so two concurrent requests with the same token cannot both get past
+            # this point and run the handler twice.
+            if entry.single_use:
+                if self.handlers.pop(handler_id, None) is None:
+                    raise HTTPException(status_code=401, detail="Handler not found")
+
+            try:
                 # handler is coroutine function?
-                res = None
                 if inspect.iscoroutinefunction(handler):
                     res = await handler(lead, params_dict)
                 else:
                     res = handler(lead, params_dict)
-                    
-                if res: 
-                    log.debug(f"Handler response: {res}")
-                    return res
-                    
             except Exception as e:
                 log.error(f"Error calling handler with lead: {lead}: {e}")
                 raise HTTPException(status_code=401, detail="Error calling handler")
 
-            if entry.single_use:
-                self.handlers.pop(handler_id)
-            
             if entry.redirect_url:
                 log.debug(f"Redirecting to lead: {lead} to {entry.redirect_url}")
                 return RedirectResponse(url=entry.redirect_url)
-            
-            
+
+            if res:
+                log.debug(f"Handler response: {res}")
+                return res
+
             return {
                 "status": "ok"
             }
-        
+
+        except HTTPException:
+            raise
         except Exception as e:
             log.error(f"Error processing callback: {e}")
             raise HTTPException(status_code=401, detail="Error processing callback")
@@ -136,7 +141,10 @@ class HttpCallbackProvider(ABC):
         assert isinstance(lead, ConversationLead), "Lead must be a ConversationLead object"
         assert self.external_url, "External URL must be set"
         
-        callback_id = id(handler)
+        # A fresh id per callback: id(handler) collides when the same handler is
+        # registered for two leads, and CPython can hand the same id() to a new
+        # object once the original handler is garbage collected.
+        callback_id = shortuuid.uuid()
         data = {
             "lead": ConversationLead.serialize(lead),
             "handler_id": callback_id
@@ -160,10 +168,20 @@ class HttpCallbackProvider(ABC):
         return link
 
     def remove_callback(self, handler: callable) -> bool:
-        """Cancels a registered callback by handler reference, preventing future execution.
+        """Cancels every callback registered for this handler reference,
+        preventing future execution.
+        Returns True if at least one callback existed and was removed, False otherwise.
+        """
+        callback_ids = [cid for cid, entry in self.handlers.items() if entry.handler is handler]
+        for callback_id in callback_ids:
+            self.handlers.pop(callback_id, None)
+        log.debug(f"remove_callback: removed={len(callback_ids)} callback(s)")
+        return bool(callback_ids)
+
+    def remove_callback_by_id(self, callback_id: str) -> bool:
+        """Cancels a single registered callback by its id.
         Returns True if the callback existed and was removed, False otherwise.
         """
-        callback_id = id(handler)
         removed = self.handlers.pop(callback_id, None)
-        log.debug(f"remove_callback: handler_id={callback_id}, removed={removed is not None}")
+        log.debug(f"remove_callback_by_id: handler_id={callback_id}, removed={removed is not None}")
         return removed is not None

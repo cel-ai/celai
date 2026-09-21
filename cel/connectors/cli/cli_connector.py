@@ -139,7 +139,7 @@ class CliConnector(BaseConnector):
         
         
     def name(self) -> str:
-        return "telegram"
+        return "cli"
         
     def get_router(self) -> APIRouter:
         return self.router
