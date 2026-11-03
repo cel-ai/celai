@@ -2,7 +2,7 @@ from abc import ABC
 import os
 import time
 from typing import cast
-from diskcache import Cache
+from diskcache_community import Cache
 from cel.cache import get_cache
 from .cache.base_cache import BaseCache
 from .cache.disk_cache import DiskCache
