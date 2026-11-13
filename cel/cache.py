@@ -1,5 +1,5 @@
 import threading
-from diskcache import Cache
+from diskcache_community import Cache
 import functools
 from cel.config import CACHE_DEFAULT_SETTINGS, CACHE_DIRECTORY
 
