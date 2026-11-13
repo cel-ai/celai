@@ -57,6 +57,9 @@ async def process_new_message(ctx: MacawNlpInferenceContext, message: str, on_fu
     settings["timeout"] = ctx.settings.core_timeout
     settings["max_retries"] = ctx.settings.core_max_retries
     # **{"model": "mistralai/mixtral-8x7b-instruct"}
+    functions = ctx.functions
+    if functions:
+        settings["reasoning_effort"] = "none"
     # merge kwargs
     ctx.llm = ctx.llm or ChatOpenAI
     llm = ctx.llm(
@@ -65,7 +68,6 @@ async def process_new_message(ctx: MacawNlpInferenceContext, message: str, on_fu
 
     try:
         # Toolling
-        functions = ctx.functions
         if functions is not None and len(functions) > 0:
             mapfuncs = map_functions_to_tool_messages(functions)
             llm_with_tools = llm.bind_tools(mapfuncs)
