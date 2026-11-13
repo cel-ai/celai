@@ -21,7 +21,7 @@ async def aioredis(request) -> redis.asyncio.Redis:
 
 @pytest.fixture
 def store(aioredis) -> ListRedisStoreAsync:
-    store = ListRedisStoreAsync(aioredis, key_prefix='h', ttl=2)
+    store = ListRedisStoreAsync(aioredis, ttl=2)
     return store
 
 @pytest.fixture
