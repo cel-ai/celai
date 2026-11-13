@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.7.8](https://github.com/cel-ai/celai/compare/v0.7.7...v0.7.8) (2026-11-13)
+
+
+### Bug Fixes
+
+* **macaw:** set reasoning_effort to none when tools are present ([#116](https://github.com/cel-ai/celai/issues/116)) ([7963278](https://github.com/cel-ai/celai/commit/7963278b7c2e2f518e40868b63ae569289f9f949))
+* read the embedding cache through diskcache-community's SafeDisk ([#114](https://github.com/cel-ai/celai/issues/114)) ([bf56c9b](https://github.com/cel-ai/celai/commit/bf56c9b8641866b6bb80488b8f63ef7fd7c99054))
+
 ## [0.7.7](https://github.com/cel-ai/celai/compare/v0.7.6...v0.7.7) (2026-09-21)
 
 
