@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.7.9](https://github.com/cel-ai/celai/compare/v0.7.8...v0.7.9) (2026-11-18)
+
+
+### Bug Fixes
+
+* **macaw:** gate reasoning_effort and stop doubling history keys ([#119](https://github.com/cel-ai/celai/issues/119)) ([3ad245d](https://github.com/cel-ai/celai/commit/3ad245d887fec372105abb4a1f6ff70fc08ce6c3))
+
 ## [0.7.8](https://github.com/cel-ai/celai/compare/v0.7.7...v0.7.8) (2026-11-13)
 
 
