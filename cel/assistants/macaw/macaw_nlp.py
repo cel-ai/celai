@@ -33,6 +33,28 @@ LLM_DEFAULT_KWARGS = {
     "verbose": True
 }
 
+
+def model_supports_reasoning_effort(model: str | None) -> bool:
+    """Whether Chat Completions accepts ``reasoning_effort`` for this model id.
+
+    gpt-4o / gpt-3.5 reject it and break streaming; gpt-6-luna and o-series need
+  ``none`` when tools are bound so reasoning stays off.
+    """
+    if not model:
+        return False
+    name = model.strip().lower()
+    if "/" in name:
+        name = name.rsplit("/", 1)[-1]
+    if name.startswith(("gpt-6", "gpt-5", "o1", "o3", "o4")):
+        return True
+    return False
+
+
+def maybe_set_reasoning_effort_none(settings: dict, *, has_tools: bool) -> None:
+    if has_tools and model_supports_reasoning_effort(settings.get("model")):
+        settings["reasoning_effort"] = "none"
+
+
 @dataclass
 class MacawFunctionCall:
     name: str
@@ -58,8 +80,7 @@ async def process_new_message(ctx: MacawNlpInferenceContext, message: str, on_fu
     settings["max_retries"] = ctx.settings.core_max_retries
     # **{"model": "mistralai/mixtral-8x7b-instruct"}
     functions = ctx.functions
-    if functions:
-        settings["reasoning_effort"] = "none"
+    maybe_set_reasoning_effort_none(settings, has_tools=bool(functions))
     # merge kwargs
     ctx.llm = ctx.llm or ChatOpenAI
     llm = ctx.llm(
