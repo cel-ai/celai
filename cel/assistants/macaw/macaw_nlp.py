@@ -38,7 +38,7 @@ def model_supports_reasoning_effort(model: str | None) -> bool:
     """Whether Chat Completions accepts ``reasoning_effort`` for this model id.
 
     gpt-4o / gpt-3.5 reject it and break streaming; gpt-6-luna and o-series need
-  ``none`` when tools are bound so reasoning stays off.
+    ``none`` when tools are bound so reasoning stays off.
     """
     if not model:
         return False
